@@ -84,6 +84,18 @@ function getBrusselsDateString(date) {
   return `${lookup.year}-${lookup.month}-${lookup.day}`;
 }
 
+function formatBrusselsDateTime(date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: BRUSSELS_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+
 function normalizeServiceType(value) {
   if (!value) return null;
   const normalized = value
@@ -96,7 +108,7 @@ function normalizeServiceType(value) {
     return 'collecte';
   }
   if (normalized.includes('atelier') || normalized.includes('depot')) {
-    return 'atelier';
+    return 'depot_atelier';
   }
 
   return null;
@@ -141,6 +153,8 @@ export async function GET(request) {
     // Check if date is in the past
     const todayBrussels = getBrusselsDateString(new Date());
     const requestedDate = createBrusselsDateTime(dateStr, '12:00');
+    const dayStart = createBrusselsDateTime(dateStr, '00:00');
+    const dayEnd = createBrusselsDateTime(dateStr, '23:59');
 
     if (dateStr < todayBrussels) {
       return NextResponse.json(
@@ -158,11 +172,18 @@ export async function GET(request) {
           ? {
               debug: {
                 slots: TIME_SLOTS,
+                slotsCount: TIME_SLOTS.length,
+                dayStart: dayStart.toISOString(),
+                dayEnd: dayEnd.toISOString(),
+                dayStartBrussels: formatBrusselsDateTime(dayStart),
+                dayEndBrussels: formatBrusselsDateTime(dayEnd),
                 appointments: [],
+                bookedIntervals: [],
                 removedSlots: TIME_SLOTS.map((slot) => ({
                   slot,
                   reason: 'closed_on_sunday',
                 })),
+                availableSlots: [],
               },
             }
           : {}),
@@ -171,8 +192,6 @@ export async function GET(request) {
 
     // Fetch all appointments for the requested date
     // We need to get appointments that could overlap with any slot on this day
-    const dayStart = createBrusselsDateTime(dateStr, '00:00');
-    const dayEnd = createBrusselsDateTime(dateStr, '23:59');
     const supabase = getSupabaseServerClient();
 
     let query = supabase
@@ -183,11 +202,18 @@ export async function GET(request) {
       .in('status', ['confirmed', 'active']);
 
     if (normalizedServiceType) {
-      const serviceTypeOptions = [normalizedServiceType];
-      if (serviceType && serviceType !== normalizedServiceType) {
-        serviceTypeOptions.push(serviceType);
+      const serviceTypeOptions = new Set([normalizedServiceType]);
+      if (normalizedServiceType === 'collecte') {
+        serviceTypeOptions.add('Collecte');
       }
-      query = query.in('service_type', serviceTypeOptions);
+      if (normalizedServiceType === 'depot_atelier') {
+        serviceTypeOptions.add('atelier');
+        serviceTypeOptions.add('Dépôt atelier');
+      }
+      if (serviceType) {
+        serviceTypeOptions.add(serviceType);
+      }
+      query = query.in('service_type', Array.from(serviceTypeOptions));
     }
 
     const { data: appointments, error } = await query;
@@ -200,10 +226,30 @@ export async function GET(request) {
       );
     }
 
+    const bookedIntervals = (appointments || []).map((appointment) => {
+      const start = new Date(appointment.scheduled_at);
+      const end = new Date(start.getTime() + appointment.duration_minutes * 60000);
+      return {
+        id: appointment.id,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        startBrussels: formatBrusselsDateTime(start),
+        endBrussels: formatBrusselsDateTime(end),
+        status: appointment.status,
+        serviceType: appointment.service_type,
+      };
+    });
+
     // Check availability for each time slot
     const debugInfo = {
       slots: TIME_SLOTS,
+      slotsCount: TIME_SLOTS.length,
+      dayStart: dayStart.toISOString(),
+      dayEnd: dayEnd.toISOString(),
+      dayStartBrussels: formatBrusselsDateTime(dayStart),
+      dayEndBrussels: formatBrusselsDateTime(dayEnd),
       appointments: appointments || [],
+      bookedIntervals,
       removedSlots: [],
     };
 
@@ -230,7 +276,7 @@ export async function GET(request) {
       date: dateStr,
       availableSlots,
       allSlots: TIME_SLOTS,
-      ...(debugMode ? { debug: debugInfo } : {}),
+      ...(debugMode ? { debug: { ...debugInfo, availableSlots } } : {}),
     });
 
   } catch (error) {

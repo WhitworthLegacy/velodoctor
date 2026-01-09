@@ -14,17 +14,17 @@ export default function Footer() {
               </div>
               <span className="font-bold text-base">VeloDoctor</span>
             </div>
-            <p className="text-sm text-white">
+            <p className="text-sm !text-white/90">
               Réparation mobile de vélos et trottinettes électriques à Bruxelles.
               Diagnostic, devis et interventions rapides à domicile ou en atelier.
             </p>
-            <div className="text-sm text-white">
+            <div className="text-sm !text-white/90">
               <p>Contact: <a className="underline" href="mailto:trott@velodoctor.be">trott@velodoctor.be</a></p>
             </div>
           </div>
 
           <div className="space-y-3 text-sm">
-            <h3 className="font-semibold uppercase tracking-wide text-white">Navigation</h3>
+            <h3 className="font-semibold uppercase tracking-wide !text-white">Navigation</h3>
             <div className="flex flex-col gap-2">
               <Link href="/services" className="hover:opacity-80 transition">Services</Link>
               <Link href="/booking" className="hover:opacity-80 transition">Rendez-vous</Link>
@@ -36,7 +36,7 @@ export default function Footer() {
           </div>
 
           <div className="space-y-3 text-sm">
-            <h3 className="font-semibold uppercase tracking-wide text-white">Informations</h3>
+            <h3 className="font-semibold uppercase tracking-wide !text-white">Informations</h3>
             <div className="flex flex-col gap-2">
               <Link href="/mentions-legales" className="hover:opacity-80 transition">
                 Mentions légales
@@ -48,11 +48,11 @@ export default function Footer() {
                 Conditions
               </Link>
             </div>
-            <p className="text-xs text-white">© 2026 VeloDoctor. Tous droits réservés.</p>
+            <p className="text-xs !text-white/90">© 2026 VeloDoctor. Tous droits réservés.</p>
           </div>
 
           <div className="space-y-3 text-sm md:col-span-1">
-            <h3 className="font-semibold uppercase tracking-wide text-white">Zones desservies</h3>
+            <h3 className="font-semibold uppercase tracking-wide !text-white">Zones desservies</h3>
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-white">
               <span>Anderlecht</span>
               <span>Auderghem</span>

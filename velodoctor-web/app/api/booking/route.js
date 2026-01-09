@@ -15,7 +15,7 @@ function normalizeServiceType(value) {
     return 'collecte';
   }
   if (normalized.includes('atelier') || normalized.includes('depot')) {
-    return 'atelier';
+    return 'depot_atelier';
   }
 
   return null;
@@ -96,7 +96,7 @@ export async function POST(request) {
     // Validate service type
     if (!normalizedServiceType) {
       return NextResponse.json(
-        { error: 'Invalid service type. Must be "collecte" or "atelier"' },
+        { error: 'Invalid service type. Must be "collecte" or "depot_atelier"' },
         { status: 400 }
       );
     }

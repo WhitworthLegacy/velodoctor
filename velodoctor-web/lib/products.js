@@ -115,3 +115,19 @@ export const products = baseProducts.map((product) => ({
 export const getProductBySlug = (slug) =>
   products.find((product) => product.slug === slug) || null;
 
+if (process.env.NODE_ENV !== 'production') {
+  const slugCounts = products.reduce((acc, product) => {
+    if (!product.slug) {
+      console.warn('[products] Missing slug for product:', product.name);
+      return acc;
+    }
+    acc[product.slug] = (acc[product.slug] || 0) + 1;
+    return acc;
+  }, {});
+
+  Object.entries(slugCounts).forEach(([slug, count]) => {
+    if (count > 1) {
+      console.warn(`[products] Duplicate slug detected: ${slug}`);
+    }
+  });
+}
