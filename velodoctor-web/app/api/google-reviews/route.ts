@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server';
 
 const GOOGLE_PLACES_URL = 'https://maps.googleapis.com/maps/api/place/details/json';
 
+type GoogleReview = {
+  author_name: string;
+  rating: number;
+  text: string;
+  relative_time_description?: string;
+  profile_photo_url?: string;
+};
+
 export async function GET() {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   const placeId = process.env.GOOGLE_PLACE_ID;
@@ -41,12 +49,12 @@ export async function GET() {
     }
 
     const place = data.result || {};
-    const reviews = (place.reviews || []).map((review) => ({
+    const reviews = (place.reviews || []).map((review: GoogleReview) => ({
       authorName: review.author_name,
       rating: review.rating,
       text: review.text,
       relativeTime: review.relative_time_description,
-      profilePhotoUrl: review.profile_photo_url,
+      profilePhoto: review.profile_photo_url,
     }));
 
     return NextResponse.json({
