@@ -23,8 +23,8 @@ export default function Button({
   className = '',
   ...props
 }) {
-  // Base styles
-  const baseStyles = 'inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
+  // Base styles - SLIMMER + WIDER for premium feel
+  const baseStyles = 'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
   // Variant styles - HIGH CONTRAST
   const variants = {
@@ -33,11 +33,11 @@ export default function Button({
     ghost: 'bg-transparent text-vdDark hover:bg-vdSurface focus:ring-vdPrimary',
   };
 
-  // Size styles
+  // Size styles - SLIMMER (reduced py) + WIDER (increased px)
   const sizes = {
-    sm: 'px-5 py-2.5 text-sm',
-    md: 'px-7 py-3.5 text-base',
-    lg: 'px-9 py-4 text-lg',
+    sm: 'px-6 py-2 text-sm',
+    md: 'px-8 py-2.5 text-base',
+    lg: 'px-10 py-3 text-base',
   };
 
   const buttonClasses = `${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`;

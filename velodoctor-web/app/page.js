@@ -73,11 +73,7 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-vdPrimary" />
-              <span>Intervention sous 48h</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-vdPrimary" />
-              <span>Garantie 6 mois</span>
+              <span>Devis sous 72h (selon la complexité)</span>
             </div>
           </div>
         </div>
@@ -284,7 +280,7 @@ export default function Home() {
           <div className="space-y-4">
             <FAQItem
               question="Le diagnostic est-il vraiment gratuit ?"
-              answer="Oui, si vous acceptez notre devis de réparation, le diagnostic est offert. Si vous refusez, le diagnostic coûte 15€."
+              answer="Oui, si vous acceptez notre devis de réparation, le diagnostic est offert. Si vous refusez, le diagnostic coûte 45€."
             />
             <FAQItem
               question="Quels moyens de paiement acceptez-vous ?"
