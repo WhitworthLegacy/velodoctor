@@ -1,26 +1,114 @@
 @import "tailwindcss";
 
+/* ============================================
+   VeloDoctor Design System - Global Styles
+   ============================================ */
+
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #293133; /* Gunmetal */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Typography Base */
+body {
+  font-family: var(--font-poppins), sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Heading Scale */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  line-height: 1.2;
+  color: #293133; /* Gunmetal */
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: 3rem; /* 48px */
+  font-weight: 800;
+}
+
+h2 {
+  font-size: 2.25rem; /* 36px */
+  font-weight: 700;
+}
+
+h3 {
+  font-size: 1.875rem; /* 30px */
+  font-weight: 700;
+}
+
+h4 {
+  font-size: 1.5rem; /* 24px */
+  font-weight: 600;
+}
+
+h5 {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 600;
+}
+
+h6 {
+  font-size: 1.125rem; /* 18px */
+  font-weight: 600;
+}
+
+/* Responsive heading adjustments */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2.25rem; /* 36px */
+  }
+
+  h2 {
+    font-size: 1.875rem; /* 30px */
+  }
+
+  h3 {
+    font-size: 1.5rem; /* 24px */
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Paragraph Spacing */
+p {
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+/* Focus States for Accessibility */
+*:focus-visible {
+  outline: 2px solid #00ACC2; /* Moonstone */
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Link Styles */
+a {
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+a:hover {
+  opacity: 0.8;
+}
+
+/* Selection */
+::selection {
+  background-color: #00ACC2;
+  color: white;
+}
+
+::-moz-selection {
+  background-color: #00ACC2;
+  color: white;
 }
