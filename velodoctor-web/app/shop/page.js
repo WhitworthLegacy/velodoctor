@@ -3,69 +3,12 @@ import Section from '@/components/Section';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Link from 'next/link';
+import { products } from '@/lib/products';
 
 export const metadata = {
   title: "Boutique - Pièces et accessoires vélo | VeloDoctor",
   description: "Achetez des pièces détachées et accessoires pour vélos et trottinettes électriques. Livraison rapide à Bruxelles.",
 };
-
-// Placeholder product data
-const products = [
-  {
-    id: 1,
-    slug: "batterie-36v-10ah",
-    name: "Batterie 36V 10Ah",
-    price: 299,
-    category: "Batteries",
-    image: "/placeholder-battery.jpg",
-    inStock: true,
-  },
-  {
-    id: 2,
-    slug: "kit-freins-hydrauliques",
-    name: "Kit freins hydrauliques",
-    price: 89,
-    category: "Freins",
-    image: "/placeholder-brakes.jpg",
-    inStock: true,
-  },
-  {
-    id: 3,
-    slug: "pneu-trottinette-10-pouces",
-    name: "Pneu trottinette 10 pouces",
-    price: 35,
-    category: "Pneus",
-    image: "/placeholder-tire.jpg",
-    inStock: true,
-  },
-  {
-    id: 4,
-    slug: "chargeur-universel-42v",
-    name: "Chargeur universel 42V",
-    price: 45,
-    category: "Chargeurs",
-    image: "/placeholder-charger.jpg",
-    inStock: true,
-  },
-  {
-    id: 5,
-    slug: "eclairage-led-avant",
-    name: "Éclairage LED avant",
-    price: 25,
-    category: "Accessoires",
-    image: "/placeholder-light.jpg",
-    inStock: true,
-  },
-  {
-    id: 6,
-    slug: "controleur-moteur-48v",
-    name: "Contrôleur moteur 48V",
-    price: 120,
-    category: "Électronique",
-    image: "/placeholder-controller.jpg",
-    inStock: false,
-  },
-];
 
 export default function ShopPage() {
   return (

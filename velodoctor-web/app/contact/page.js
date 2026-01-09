@@ -75,10 +75,10 @@ export default function ContactPage() {
               Écrivez-nous
             </p>
             <a
-              href="mailto:contact@velodoctor.be"
+              href="mailto:trott@velodoctor.be"
               className="text-vdAccent hover:text-vdAccent/80 font-semibold transition"
             >
-              contact@velodoctor.be
+              trott@velodoctor.be
             </a>
           </Card>
         </div>

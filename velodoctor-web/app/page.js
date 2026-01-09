@@ -1,10 +1,33 @@
-import { Wrench, ShoppingBag, ShieldCheck, Zap, CheckCircle, MapPin, Phone, Mail, MessageCircle, Star, Euro, HelpCircle } from 'lucide-react';
+import { Wrench, ShoppingBag, Zap, CheckCircle, MapPin, Phone, Mail, MessageCircle, Euro, HelpCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import Section from '@/components/Section';
 import Card from '@/components/Card';
-import Container from '@/components/Container';
+import GoogleReviews from '@/components/GoogleReviews';
+import Link from 'next/link';
+import { blogPosts } from '@/lib/blog';
 
 export default function Home() {
+  const fallbackReviews = [
+    {
+      authorName: 'Sophie D.',
+      rating: 5,
+      text: 'Service impeccable ! Mon vélo électrique est reparti en 30 minutes. Le technicien était professionnel et le tarif très correct.',
+      relativeTime: 'Avis client',
+    },
+    {
+      authorName: 'Marc L.',
+      rating: 5,
+      text: "Enfin un service qui vient à domicile. Plus besoin de trimballer mon vélo. Diagnostic gratuit et réparation immédiate. Top !",
+      relativeTime: 'Avis client',
+    },
+    {
+      authorName: 'Amina K.',
+      rating: 5,
+      text: "Ma trottinette ne chargeait plus. Le diagnostic était clair et le prix annoncé à l'avance. Réparé en une heure. Je recommande.",
+      relativeTime: 'Avis client',
+    },
+  ];
+
   return (
     <main className="min-h-screen bg-white">
 
@@ -252,37 +275,44 @@ export default function Home() {
 
       {/* TESTIMONIALS */}
       <Section spacing="default" background="surface">
-        <div className="text-center mb-12">
+        <GoogleReviews fallbackReviews={fallbackReviews} />
+      </Section>
+
+      {/* BLOG */}
+      <Section spacing="default" background="surface">
+        <div className="text-center mb-12 max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-vdDark mb-3">
-            Avis clients
+            Guides & conseils
           </h2>
-          <div className="flex justify-center gap-1 mb-2">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-5 h-5 fill-vdAccent text-vdAccent" />
-            ))}
-          </div>
-          <p className="text-gray-600">4.9/5 · Basé sur 200+ avis</p>
+          <p className="text-gray-600">
+            Nos recommandations pour entretenir votre vélo ou trottinette électrique.
+          </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          <TestimonialCard
-            name="Sophie D."
-            role="Livreur Uber Eats"
-            text="Service impeccable ! Mon vélo électrique est reparti en 30 minutes. Le technicien était professionnel et le tarif très correct."
-            rating={5}
-          />
-          <TestimonialCard
-            name="Marc L."
-            role="Cycliste urbain"
-            text="Enfin un service qui vient à domicile. Plus besoin de trimballer mon vélo. Diagnostic gratuit et réparation immédiate. Top !"
-            rating={5}
-          />
-          <TestimonialCard
-            name="Amina K."
-            role="Étudiante"
-            text="Ma trottinette ne chargeait plus. Le diagnostic était clair et le prix annoncé à l'avance. Réparé en une heure. Je recommande."
-            rating={5}
-          />
+        <div className="grid md:grid-cols-2 gap-6">
+          {blogPosts.slice(0, 2).map((post) => (
+            <Link key={post.slug} href={`/blog/${post.slug}`}>
+              <Card className="h-full group" hover={true}>
+                <p className="text-xs text-gray-500 mb-2">
+                  {new Date(post.date).toLocaleDateString('fr-BE', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </p>
+                <h3 className="text-lg font-bold text-vdDark mb-2 group-hover:text-vdPrimary transition">
+                  {post.title}
+                </h3>
+                <p className="text-gray-600">{post.excerpt}</p>
+              </Card>
+            </Link>
+          ))}
+        </div>
+
+        <div className="text-center mt-8">
+          <Button href="/blog" variant="secondary" size="md">
+            Lire le blog
+          </Button>
         </div>
       </Section>
 
@@ -362,9 +392,9 @@ export default function Home() {
                 <Phone className="w-4 h-4" />
                 <span>Téléphone</span>
               </a>
-              <a href="mailto:contact@velodoctor.be" className="flex items-center gap-2 text-sm text-gray-600 hover:text-vdPrimary transition">
+              <a href="mailto:trott@velodoctor.be" className="flex items-center gap-2 text-sm text-gray-600 hover:text-vdPrimary transition">
                 <Mail className="w-4 h-4" />
-                <span>Email</span>
+                <span>trott@velodoctor.be</span>
               </a>
             </div>
           </div>
@@ -415,24 +445,6 @@ function ServiceCard({ icon, title, price, features }) {
           </li>
         ))}
       </ul>
-    </Card>
-  );
-}
-
-// Testimonial Card Component
-function TestimonialCard({ name, role, text, rating }) {
-  return (
-    <Card className="h-full">
-      <div className="flex gap-1 mb-3">
-        {[...Array(rating)].map((_, i) => (
-          <Star key={i} className="w-4 h-4 fill-vdAccent text-vdAccent" />
-        ))}
-      </div>
-      <p className="text-gray-700 mb-4 leading-relaxed">"{text}"</p>
-      <div className="pt-4 border-t border-vdBorder">
-        <p className="font-semibold text-vdDark">{name}</p>
-        <p className="text-sm text-gray-500">{role}</p>
-      </div>
     </Card>
   );
 }

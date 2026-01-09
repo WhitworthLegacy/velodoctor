@@ -43,9 +43,18 @@
 5. Create a local `.env.local` (not committed) with:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+## Google Reviews (Optional)
+
+Enable Google Maps reviews on the homepage by adding:
+
+```env
+GOOGLE_PLACES_API_KEY=your-google-places-api-key
+GOOGLE_PLACE_ID=your-place-id
 ```
 
 ### 2. **Finish Google Apps Script Setup** (For emails)
@@ -143,7 +152,7 @@ Before deploying to production:
 
 - **Phone**: +32 456 95 14 45
 - **WhatsApp**: https://wa.me/+32456951445
-- **Email**: contact@velodoctor.be (update in Footer if needed)
+- **Email**: trott@velodoctor.be
 
 ---
 

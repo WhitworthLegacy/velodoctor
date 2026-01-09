@@ -1,19 +1,30 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-
-// Initialize Supabase client with SERVICE ROLE KEY for inserts
-// This bypasses RLS policies and should ONLY be used server-side
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // Service role key - NEVER expose to client
-);
+import { getSupabaseServerClient } from '@/lib/supabaseServer';
 
 const APPOINTMENT_DURATION_MINUTES = 90;
+
+function normalizeServiceType(value) {
+  if (!value) return null;
+  const normalized = value
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  if (normalized.includes('collecte')) {
+    return 'collecte';
+  }
+  if (normalized.includes('atelier') || normalized.includes('depot')) {
+    return 'atelier';
+  }
+
+  return null;
+}
 
 /**
  * Check if a time slot overlaps with existing appointments
  */
-async function checkSlotAvailability(scheduledAt) {
+async function checkSlotAvailability(supabaseAdmin, scheduledAt) {
   const slotStart = new Date(scheduledAt);
   const slotEnd = new Date(slotStart.getTime() + APPOINTMENT_DURATION_MINUTES * 60000);
 
@@ -27,7 +38,7 @@ async function checkSlotAvailability(scheduledAt) {
     .select('scheduled_at, duration_minutes')
     .gte('scheduled_at', checkStart.toISOString())
     .lte('scheduled_at', checkEnd.toISOString())
-    .in('status', ['pending', 'confirmed']);
+    .in('status', ['confirmed', 'active']);
 
   if (error) {
     console.error('Error checking availability:', error);
@@ -67,7 +78,9 @@ async function checkSlotAvailability(scheduledAt) {
  */
 export async function POST(request) {
   try {
+    const supabaseAdmin = getSupabaseServerClient();
     const body = await request.json();
+    const normalizedServiceType = normalizeServiceType(body.serviceType);
 
     // Validate required fields
     const requiredFields = ['serviceType', 'scheduledAt', 'customerName', 'customerEmail', 'customerPhone'];
@@ -81,15 +94,15 @@ export async function POST(request) {
     }
 
     // Validate service type
-    if (!['Collecte', 'Dépôt atelier'].includes(body.serviceType)) {
+    if (!normalizedServiceType) {
       return NextResponse.json(
-        { error: 'Invalid service type. Must be "Collecte" or "Dépôt atelier"' },
+        { error: 'Invalid service type. Must be "collecte" or "atelier"' },
         { status: 400 }
       );
     }
 
     // Validate address is provided for "Collecte"
-    if (body.serviceType === 'Collecte' && !body.customerAddress) {
+    if (normalizedServiceType === 'collecte' && !body.customerAddress) {
       return NextResponse.json(
         { error: 'Address is required for "Collecte" service' },
         { status: 400 }
@@ -115,7 +128,7 @@ export async function POST(request) {
     }
 
     // Check slot availability
-    const isAvailable = await checkSlotAvailability(body.scheduledAt);
+    const isAvailable = await checkSlotAvailability(supabaseAdmin, body.scheduledAt);
     if (!isAvailable) {
       return NextResponse.json(
         { error: 'This time slot is no longer available. Please select another slot.' },
@@ -128,7 +141,7 @@ export async function POST(request) {
       .from('appointments')
       .insert([
         {
-          service_type: body.serviceType,
+          service_type: normalizedServiceType,
           scheduled_at: body.scheduledAt,
           duration_minutes: APPOINTMENT_DURATION_MINUTES,
           customer_name: body.customerName,

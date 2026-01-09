@@ -66,8 +66,8 @@ export default function CheckoutPage() {
               </div>
               <div className="flex items-center justify-center gap-2 text-gray-700">
                 <span className="font-medium">Email :</span>
-                <a href="mailto:contact@velodoctor.be" className="text-vdPrimary hover:underline">
-                  contact@velodoctor.be
+                <a href="mailto:trott@velodoctor.be" className="text-vdPrimary hover:underline">
+                  trott@velodoctor.be
                 </a>
               </div>
             </div>

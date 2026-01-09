@@ -34,10 +34,14 @@ export default function BookingPage() {
   const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Fetch available slots when date is selected
-  const fetchAvailableSlots = async (date) => {
+  const fetchAvailableSlots = async (date, serviceType) => {
     setLoadingSlots(true);
     try {
-      const response = await fetch(`/api/availability?date=${date}`);
+      const params = new URLSearchParams({ date });
+      if (serviceType) {
+        params.set('serviceType', serviceType);
+      }
+      const response = await fetch(`/api/availability?${params.toString()}`);
       const data = await response.json();
 
       if (response.ok) {
@@ -59,7 +63,11 @@ export default function BookingPage() {
 
     // When date changes, fetch available slots
     if (field === 'date' && value) {
-      fetchAvailableSlots(value);
+      fetchAvailableSlots(value, formData.serviceType);
+    }
+
+    if (field === 'serviceType' && value && formData.date) {
+      fetchAvailableSlots(formData.date, value);
     }
   };
 

@@ -6,7 +6,7 @@ The VeloDoctor booking system allows customers to book repair appointments throu
 
 ## Key Features
 
-- **Fixed Time Slots**: 7 daily slots at 90-minute intervals
+- **Fixed Time Slots**: 6 daily slots at 90-minute intervals
 - **Real-time Availability**: Checks Supabase for slot conflicts
 - **4-Step Booking Flow**: Service type → Date → Time → Contact details
 - **Overlap Prevention**: Server-side validation prevents double bookings
@@ -16,14 +16,13 @@ The VeloDoctor booking system allows customers to book repair appointments throu
 
 ## Time Slots Configuration
 
-**Fixed Slots (90-minute duration each):**
+**Fixed Slots (90-minute duration each, Monday–Saturday):**
 - 09:00 - 10:30
 - 10:30 - 12:00
 - 12:00 - 13:30
 - 13:30 - 15:00
 - 15:00 - 16:30
 - 16:30 - 18:00
-- 18:00 - 19:30
 
 Slots are defined in:
 - `/app/api/availability/route.js` (line 6)
@@ -41,7 +40,7 @@ Apply the migration in your existing Supabase project (do not create a new proje
 
 **Key Columns:**
 - `id`: UUID (primary key)
-- `service_type`: 'Collecte' or 'Dépôt atelier'
+- `service_type`: 'collecte' or 'atelier'
 - `scheduled_at`: TIMESTAMPTZ (start time in Europe/Brussels)
 - `duration_minutes`: INTEGER (default 90)
 - `customer_name`, `customer_email`, `customer_phone`
@@ -75,7 +74,7 @@ All Supabase access happens in Next.js server routes (never directly from the cl
 {
   "date": "2026-01-15",
   "availableSlots": ["09:00", "12:00", "15:00"],
-  "allSlots": ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00"]
+  "allSlots": ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30"]
 }
 ```
 
@@ -134,7 +133,7 @@ All Supabase access happens in Next.js server routes (never directly from the cl
 
 **Validation:**
 1. Checks all required fields are present
-2. Validates `serviceType` is 'Collecte' or 'Dépôt atelier'
+2. Validates `serviceType` maps to 'collecte' or 'atelier'
 3. Requires `customerAddress` for 'Collecte' service
 4. Validates `scheduledAt` is a valid future datetime
 5. Re-checks slot availability (prevents race conditions)
@@ -187,8 +186,8 @@ User chooses between:
 Create a local `.env.local` (not committed) with credentials for the same Supabase project as admin:
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
@@ -279,7 +278,7 @@ curl -X POST http://localhost:3000/api/booking \
 ## Troubleshooting
 
 ### "Failed to fetch appointments" error
-- Check `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set
+- Check `SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set
 - Verify RLS policy allows public SELECT on appointments table
 
 ### "Failed to create appointment" error

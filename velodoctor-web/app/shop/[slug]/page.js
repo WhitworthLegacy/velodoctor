@@ -3,44 +3,10 @@ import Section from '@/components/Section';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Link from 'next/link';
-
-// This would come from a database
-const getProduct = (slug) => {
-  const products = {
-    "batterie-36v-10ah": {
-      name: "Batterie 36V 10Ah",
-      price: 299,
-      category: "Batteries",
-      description: "Batterie lithium-ion haute capacité compatible avec la plupart des vélos électriques. Autonomie jusqu'à 50km selon utilisation.",
-      features: [
-        "Capacité: 10Ah / 36V",
-        "Technologie: Lithium-ion",
-        "Autonomie: jusqu'à 50km",
-        "Garantie: 2 ans",
-        "Compatible: vélos 36V standard",
-      ],
-      inStock: true,
-    },
-    "kit-freins-hydrauliques": {
-      name: "Kit freins hydrauliques",
-      price: 89,
-      category: "Freins",
-      description: "Kit complet de freins hydrauliques pour vélo. Installation professionnelle recommandée.",
-      features: [
-        "Type: hydraulique",
-        "Puissance de freinage élevée",
-        "Installation incluse: +30€",
-        "Garantie: 1 an",
-      ],
-      inStock: true,
-    },
-  };
-
-  return products[slug] || null;
-};
+import { getProductBySlug } from '@/lib/products';
 
 export async function generateMetadata({ params }) {
-  const product = getProduct(params.slug);
+  const product = getProductBySlug(params.slug);
 
   if (!product) {
     return {
@@ -55,7 +21,7 @@ export async function generateMetadata({ params }) {
 }
 
 export default function ProductPage({ params }) {
-  const product = getProduct(params.slug);
+  const product = getProductBySlug(params.slug);
 
   if (!product) {
     return (

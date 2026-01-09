@@ -255,7 +255,7 @@ function sendCustomerConfirmation(data) {
         <div class="footer">
           <p>
             VeloDoctor - Réparation mobile de vélos et trottinettes<br>
-            📧 contact@velodoctor.be | 📞 +32 456 95 14 45<br>
+            📧 trott@velodoctor.be | 📞 +32 456 95 14 45<br>
             Zone d'intervention: Bruxelles-Capitale
           </p>
           <p style="margin-top: 15px; font-size: 11px;">
