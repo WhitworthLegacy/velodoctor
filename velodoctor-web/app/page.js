@@ -11,7 +11,7 @@ export default function Home() {
       {/* HERO SECTION - PREMIUM MINIMAL WHITE */}
       <Section spacing="lg" background="white">
         <div className="w-full">
-        <div className="flex flex-col items-center text-center max-w-7xl mx-auto px-4"> 
+        <div className="flex flex-col items-center text-center max-w-9xl mx-auto px-4"> 
 
           {/* Small Accent Badge */}
           <div className="inline-flex items-center gap-2 bg-vdSurface border border-vdBorder rounded-full px-4 py-2 mb-6">
