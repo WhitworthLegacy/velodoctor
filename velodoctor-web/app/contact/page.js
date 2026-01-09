@@ -39,10 +39,10 @@ export default function ContactPage() {
               Appelez-nous directement
             </p>
             <a
-              href="tel:+32XXXXXXXXX"
+              href="tel:+32456951445"
               className="text-vdPrimary hover:text-vdPrimary/80 font-semibold transition"
             >
-              +32 XXX XX XX XX
+              +32 456 95 14 45
             </a>
           </Card>
 
@@ -56,7 +56,7 @@ export default function ContactPage() {
               Message instantané
             </p>
             <a
-              href="https://wa.me/32XXXXXXXXX"
+              href="https://wa.me/+32456951445"
               className="text-green-600 hover:text-green-500 font-semibold transition"
               target="_blank"
               rel="noopener noreferrer"
@@ -156,7 +156,7 @@ export default function ContactPage() {
                 Le diagnostic est-il vraiment gratuit ?
               </h3>
               <p className="text-sm text-gray-600">
-                Oui, si vous acceptez notre devis de réparation. Sinon 15€.
+                Le diagnostic coûte 45€, remboursé intégralement si vous acceptez notre devis.
               </p>
             </Card>
 
@@ -201,17 +201,17 @@ export default function ContactPage() {
         <div className="max-w-3xl mx-auto">
           <Card className="text-center border-2 border-vdPrimary bg-vdSurface" padding="lg">
             <h2 className="text-2xl font-bold text-vdDark mb-4">
-              Prêt à réserver ?
+              Prenez rendez-vous
             </h2>
             <p className="text-gray-600 mb-6">
-              Réservez votre créneau en ligne en quelques clics.
+              Diagnostic à 45€, remboursé si vous acceptez notre devis de réparation.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button href="/booking" variant="primary" size="lg">
-                Réserver maintenant
+                Prendre rendez-vous
               </Button>
               <Button
-                href="https://wa.me/32XXXXXXXXX"
+                href="https://wa.me/+32456951445"
                 variant="secondary"
                 size="lg"
                 icon={<MessageCircle size={20} />}

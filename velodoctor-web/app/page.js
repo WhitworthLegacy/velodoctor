@@ -32,18 +32,18 @@ export default function Home() {
           {/* Subheading */}
           <p className="max-w-2xl text-base md:text-lg text-gray-600 mb-10 leading-relaxed">
             Service de réparation expert à domicile pour vélos et trottinettes électriques.
-            Diagnostic offert, intervention rapide, garantie incluse.
+            Diagnostic à 45€ — remboursé intégralement si vous acceptez le devis de réparation.
           </p>
 
           {/* CTA Group */}
           <div className="flex flex-col sm:flex-row gap-3 w-full max-w-2xl justify-center mb-8">
             <Button
-              href="/services"
+              href="/booking"
               variant="primary"
               size="lg"
               icon={<Wrench size={20} />}
             >
-              Réserver une réparation
+              Prendre rendez-vous
             </Button>
 
             <Button
@@ -56,12 +56,12 @@ export default function Home() {
             </Button>
 
             <Button
-              href="/contact"
+              href="https://wa.me/+32456951445"
               variant="ghost"
               size="lg"
-              icon={<Phone size={20} />}
+              icon={<MessageCircle size={20} />}
             >
-              Nous contacter
+              WhatsApp
             </Button>
           </div>
 
@@ -69,11 +69,15 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500 pt-6 border-t border-vdBorder">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-vdPrimary" />
-              <span>Diagnostic gratuit</span>
+              <span>Diagnostic à 45€</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-vdPrimary" />
-              <span>Devis sous 72h (selon la complexité)</span>
+              <span>Remboursé si devis accepté</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-vdPrimary" />
+              <span>Devis sous 72h</span>
             </div>
           </div>
         </div>
@@ -94,20 +98,20 @@ export default function Home() {
           <StepCard
             number="1"
             icon={<MapPin className="w-8 h-8" />}
-            title="Réservez en ligne"
-            description="Choisissez votre créneau et votre adresse. Nous nous déplaçons à domicile, au bureau ou n'importe où à Bruxelles."
+            title="Demandez un diagnostic"
+            description="Réservez en ligne pour 45€. Nous nous déplaçons à domicile, au bureau ou n'importe où à Bruxelles."
           />
           <StepCard
             number="2"
             icon={<Wrench className="w-8 h-8" />}
-            title="Diagnostic gratuit"
-            description="Notre technicien certifié établit un devis transparent sur place. Vous décidez, nous réparons immédiatement si vous acceptez."
+            title="Recevez votre devis"
+            description="Notre technicien certifié établit un devis transparent sous 72h. Diagnostic remboursé intégralement si vous acceptez le devis."
           />
           <StepCard
             number="3"
             icon={<CheckCircle className="w-8 h-8" />}
-            title="Garantie 6 mois"
-            description="Réparation terminée en moins d'une heure dans la plupart des cas. Qualité garantie 6 mois, pièces d'origine."
+            title="Réparation garantie"
+            description="Une fois le devis accepté, nous réparons votre véhicule. Qualité garantie, pièces d'origine."
           />
         </div>
       </Section>
@@ -126,14 +130,14 @@ export default function Home() {
         <div className="grid md:grid-cols-3 gap-6">
           <ServiceCard
             icon={<Wrench className="w-8 h-8 text-vdAccent" />}
-            title="Révision complète"
-            price="À partir de 45€"
-            features={["Freins", "Vitesses", "Pneus", "Chaîne"]}
+            title="Diagnostic complet"
+            price="45€"
+            features={["Freins", "Vitesses", "Pneus", "Électrique"]}
           />
           <ServiceCard
             icon={<Zap className="w-8 h-8 text-vdPrimary" />}
-            title="Diagnostic électrique"
-            price="Gratuit si devis accepté"
+            title="Devis personnalisé"
+            price="Remboursé si accepté"
             features={["Batterie", "Moteur", "Contrôleur", "Câblage"]}
           />
           <ServiceCard
@@ -310,36 +314,36 @@ export default function Home() {
               Prêt à reprendre la route ?
             </h2>
             <p className="text-base md:text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-              Réservez votre créneau en ligne ou contactez-nous directement par téléphone ou WhatsApp.
+              Demandez votre diagnostic à 45€, remboursé si vous acceptez notre devis de réparation.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
               <Button
-                href="/services"
+                href="/booking"
                 variant="primary"
                 size="lg"
                 icon={<Wrench size={20} />}
               >
-                Réserver maintenant
+                Prendre rendez-vous
               </Button>
               <Button
-                href="tel:+32XXXXXXXXX"
+                href="tel:+32456951445"
                 variant="ghost"
                 size="lg"
                 icon={<Phone size={20} />}
                 className="border-2 border-vdBorder"
               >
-                +32 XXX XX XX XX
+                +32 456 95 14 45
               </Button>
             </div>
 
             {/* Contact Options */}
             <div className="flex flex-wrap justify-center gap-4 pt-6 border-t border-vdBorder">
-              <a href="https://wa.me/32XXXXXXXXX" className="flex items-center gap-2 text-sm text-gray-600 hover:text-vdPrimary transition">
+              <a href="https://wa.me/+32456951445" className="flex items-center gap-2 text-sm text-gray-600 hover:text-vdPrimary transition">
                 <MessageCircle className="w-4 h-4" />
                 <span>WhatsApp</span>
               </a>
-              <a href="tel:+32XXXXXXXXX" className="flex items-center gap-2 text-sm text-gray-600 hover:text-vdPrimary transition">
+              <a href="tel:+32456951445" className="flex items-center gap-2 text-sm text-gray-600 hover:text-vdPrimary transition">
                 <Phone className="w-4 h-4" />
                 <span>Téléphone</span>
               </a>

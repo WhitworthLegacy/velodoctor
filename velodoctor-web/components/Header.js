@@ -35,14 +35,14 @@ export default function Header() {
           {/* CTA Button */}
           <div className="hidden md:block">
             <Button href="/booking" variant="primary" size="sm">
-              Réserver
+              Prendre RDV
             </Button>
           </div>
 
           {/* Mobile Menu Button - Placeholder */}
           <Link href="/booking" className="md:hidden">
             <Button variant="primary" size="sm">
-              Réserver
+              RDV
             </Button>
           </Link>
         </div>
