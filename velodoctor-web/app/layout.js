@@ -1,5 +1,7 @@
 import { Poppins } from "next/font/google";
 import "./globals.css";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 // Configuration de la police Poppins (Charte VeloDoctor)
 const poppins = Poppins({
@@ -18,7 +20,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="fr">
       <body className={`${poppins.variable} antialiased`}>
+        <Header />
         {children}
+        <Footer />
       </body>
     </html>
   );
