@@ -10,7 +10,8 @@ export default function Home() {
 
       {/* HERO SECTION - PREMIUM MINIMAL WHITE */}
       <Section spacing="lg" background="white">
-        <div className="flex flex-col items-center text-center max-w-7xl mx-auto">
+        <div className="w-full">
+        <div className="flex flex-col items-center text-center max-w-6xl mx-auto px-4"> 
 
           {/* Small Accent Badge */}
           <div className="inline-flex items-center gap-2 bg-vdSurface border border-vdBorder rounded-full px-4 py-2 mb-6">
@@ -32,7 +33,7 @@ export default function Home() {
           {/* Subheading */}
           <p className="max-w-2xl text-base md:text-lg text-gray-600 mb-10 leading-relaxed">
             Service de réparation expert à domicile pour vélos et trottinettes électriques.
-            Diagnostic à 45€ — remboursé intégralement si vous acceptez le devis de réparation.
+            Diagnostic : <span className="line-through">45€</span> — <strong>0€ si devis réparation accepté</strong>.
           </p>
 
           {/* CTA Group */}
@@ -69,17 +70,22 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-500 pt-6 border-t border-vdBorder">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-vdPrimary" />
-              <span>Diagnostic à 45€</span>
+              <span>
+                Diagnostic : <span className="line-through">45€</span> → <strong>0€</strong>
+              </span>
             </div>
+
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-vdPrimary" />
-              <span>Remboursé si devis accepté</span>
+              <span>Si devis de réparation accepté</span>
             </div>
+
             <div className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 text-vdPrimary" />
-              <span>Devis sous 72h</span>
+              <span>Réparation uniquement sur devis</span>
             </div>
           </div>
+        </div>
         </div>
       </Section>
 
@@ -110,8 +116,8 @@ export default function Home() {
           <StepCard
             number="3"
             icon={<CheckCircle className="w-8 h-8" />}
-            title="Réparation garantie"
-            description="Une fois le devis accepté, nous réparons votre véhicule. Qualité garantie, pièces d'origine."
+            title="Réparation en atelier"
+            description="Une fois le devis accepté, nous effectuons la réparation et vous informons dès que le véhicule est prêt."
           />
         </div>
       </Section>
@@ -128,22 +134,21 @@ export default function Home() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          <ServiceCard
-            icon={<Wrench className="w-8 h-8 text-vdAccent" />}
+         <ServiceCard
             title="Diagnostic complet"
-            price="45€"
+            price={<span><span className="line-through">45€</span> <span className="ml-2 font-bold">0€ si devis accepté</span></span>}
             features={["Freins", "Vitesses", "Pneus", "Électrique"]}
           />
+
           <ServiceCard
-            icon={<Zap className="w-8 h-8 text-vdPrimary" />}
-            title="Devis personnalisé"
-            price="Remboursé si accepté"
+            title="Réparation & pièces"
+            price="Sur devis"
             features={["Batterie", "Moteur", "Contrôleur", "Câblage"]}
           />
+
           <ServiceCard
-            icon={<ShieldCheck className="w-8 h-8 text-vdAccent" />}
-            title="Crevaison + pneus"
-            price="À partir de 25€"
+            title="Crevaison & pneus"
+            price="Sur devis"
             features={["Réparation", "Remplacement", "Chambres à air", "Pneus neufs"]}
           />
         </div>
@@ -176,9 +181,14 @@ export default function Home() {
             <div className="grid sm:grid-cols-2 gap-6">
               <div className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-vdDark">Diagnostic offert</p>
-                  <p className="text-sm text-gray-600">Si vous acceptez le devis d'intervention</p>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-vdDark">
+                      Diagnostic : <span className="line-through">45€</span> → <span className="font-bold">0€ si devis accepté</span>
+                    </p>
+                    <p className="text-sm text-gray-600">Sinon : diagnostic facturé 45€</p>
+                  </div>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -197,9 +207,14 @@ export default function Home() {
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-vdDark">Garantie incluse</p>
-                  <p className="text-sm text-gray-600">6 mois sur toutes les réparations</p>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-vdDark">
+                      Diagnostic : <span className="line-through">45€</span> → <span className="font-bold">0€ si devis accepté</span>
+                    </p>
+                    <p className="text-sm text-gray-600">Sinon : diagnostic facturé 45€</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -300,7 +315,7 @@ export default function Home() {
             />
             <FAQItem
               question="Proposez-vous une garantie ?"
-              answer="Oui, toutes nos réparations sont garanties 6 mois, pièces et main d'œuvre comprises."
+              answer="Le diagnostic coûte 45€. Si vous acceptez notre devis de réparation, le diagnostic passe à 0€ (déduit/annulé)."
             />
           </div>
         </div>
@@ -386,7 +401,12 @@ function ServiceCard({ icon, title, price, features }) {
         {icon}
       </div>
       <h3 className="text-lg font-bold text-vdDark mb-2">{title}</h3>
-      <p className="text-vdAccent font-semibold mb-4">{price}</p>
+
+      {/* ici */}
+      <div className="text-vdAccent font-semibold mb-4">
+        {price}
+      </div>
+
       <ul className="space-y-2">
         {features.map((feature, i) => (
           <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
