@@ -7,34 +7,13 @@ import Link from 'next/link';
 import { blogPosts } from '@/lib/blog';
 
 export default function Home() {
-  const fallbackReviews = [
-    {
-      authorName: 'Sophie D.',
-      rating: 5,
-      text: 'Service impeccable ! Mon vélo électrique est reparti en 30 minutes. Le technicien était professionnel et le tarif très correct.',
-      relativeTime: 'Avis client',
-    },
-    {
-      authorName: 'Marc L.',
-      rating: 5,
-      text: "Enfin un service qui vient à domicile. Plus besoin de trimballer mon vélo. Diagnostic gratuit et réparation immédiate. Top !",
-      relativeTime: 'Avis client',
-    },
-    {
-      authorName: 'Amina K.',
-      rating: 5,
-      text: "Ma trottinette ne chargeait plus. Le diagnostic était clair et le prix annoncé à l'avance. Réparé en une heure. Je recommande.",
-      relativeTime: 'Avis client',
-    },
-  ];
-
   return (
     <main className="min-h-screen bg-white">
 
       {/* HERO SECTION - PREMIUM MINIMAL WHITE */}
       <Section spacing="lg" background="white">
         <div className="w-full">
-        <div className="flex flex-col items-center text-center max-w-9xl mx-auto px-4"> 
+        <div className="flex flex-col items-center text-center max-w-10xl mx-auto px-4"> 
 
           {/* Small Accent Badge */}
           <div className="inline-flex items-center gap-2 bg-vdSurface border border-vdBorder rounded-full px-4 py-2 mb-6">
@@ -233,10 +212,8 @@ export default function Home() {
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-vdDark">
-                      Diagnostic : <span className="line-through">45€</span> → <span className="font-bold">0€ si devis accepté</span>
-                    </p>
-                    <p className="text-sm text-gray-600">Sinon : diagnostic facturé 45€</p>
+                    <p className="font-semibold text-vdDark">Devis sous 72h</p>
+                    <p className="text-sm text-gray-600">Après le diagnostic</p>
                   </div>
                 </div>
               </div>
@@ -275,7 +252,7 @@ export default function Home() {
 
       {/* TESTIMONIALS */}
       <Section spacing="default" background="surface">
-        <GoogleReviews fallbackReviews={fallbackReviews} />
+        <GoogleReviews />
       </Section>
 
       {/* BLOG */}

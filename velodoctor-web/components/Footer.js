@@ -14,7 +14,7 @@ export default function Footer() {
               </div>
               <span className="font-bold text-base">VeloDoctor</span>
             </div>
-            <p className="text-sm text-white opacity-80">
+            <p className="text-sm text-white">
               Réparation mobile de vélos et trottinettes électriques à Bruxelles.
               Diagnostic, devis et interventions rapides à domicile ou en atelier.
             </p>
@@ -48,7 +48,7 @@ export default function Footer() {
                 Conditions
               </Link>
             </div>
-            <p className="text-xs text-white opacity-80">© 2026 VeloDoctor. Tous droits réservés.</p>
+            <p className="text-xs text-white">© 2026 VeloDoctor. Tous droits réservés.</p>
           </div>
 
           <div className="space-y-3 text-sm md:col-span-1">

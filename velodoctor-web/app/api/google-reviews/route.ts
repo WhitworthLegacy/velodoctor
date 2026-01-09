@@ -1,13 +1,33 @@
 import { NextResponse } from 'next/server';
+import { FALLBACK_REVIEWS, normalizeReviews } from '@/lib/reviews';
 
 const GOOGLE_PLACES_URL = 'https://maps.googleapis.com/maps/api/place/details/json';
 
-type GoogleReview = {
+export const revalidate = 3600;
+
+type GooglePlaceReview = {
   author_name: string;
   rating: number;
-  text: string;
+  text?: string;
   relative_time_description?: string;
   profile_photo_url?: string;
+};
+
+type GooglePlaceResult = {
+  name?: string;
+  rating?: number;
+  user_ratings_total?: number;
+  reviews?: GooglePlaceReview[];
+};
+
+type GooglePlaceDetailsResponse = {
+  status: string;
+  result?: GooglePlaceResult;
+  error_message?: string;
+};
+
+const cacheHeaders = {
+  'Cache-Control': 's-maxage=3600, stale-while-revalidate=86400',
 };
 
 export async function GET() {
@@ -16,8 +36,13 @@ export async function GET() {
 
   if (!apiKey || !placeId) {
     return NextResponse.json(
-      { error: 'Missing Google Places configuration' },
-      { status: 500 }
+      {
+        source: 'fallback',
+        reviews: FALLBACK_REVIEWS,
+        averageRating: 5.0,
+        totalRatings: FALLBACK_REVIEWS.length,
+      },
+      { headers: cacheHeaders }
     );
   }
 
@@ -29,47 +54,69 @@ export async function GET() {
 
   try {
     const response = await fetch(url.toString(), {
-      next: { revalidate: 21600 },
+      next: { revalidate },
     });
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: 'Failed to fetch Google reviews' },
-        { status: 502 }
+        {
+          source: 'fallback',
+          reviews: FALLBACK_REVIEWS,
+          averageRating: 5.0,
+          totalRatings: FALLBACK_REVIEWS.length,
+        },
+        { headers: cacheHeaders }
       );
     }
 
-    const data = await response.json();
+    const data: GooglePlaceDetailsResponse = await response.json();
 
     if (data.status !== 'OK') {
       return NextResponse.json(
-        { error: data.error_message || 'Google Places API error', status: data.status },
-        { status: 502 }
+        {
+          source: 'fallback',
+          reviews: FALLBACK_REVIEWS,
+          averageRating: 5.0,
+          totalRatings: FALLBACK_REVIEWS.length,
+        },
+        { headers: cacheHeaders }
       );
     }
 
     const place = data.result || {};
-    const reviews = (place.reviews || []).map((review: GoogleReview) => ({
-      authorName: review.author_name,
-      rating: review.rating,
-      text: review.text,
-      relativeTime: review.relative_time_description,
-      profilePhoto: review.profile_photo_url,
-    }));
+    const normalizedReviews = normalizeReviews(place.reviews || []);
 
-    return NextResponse.json({
-      place: {
-        name: place.name,
-        rating: place.rating,
-        totalRatings: place.user_ratings_total,
+    if (normalizedReviews.length === 0) {
+      return NextResponse.json(
+        {
+          source: 'fallback',
+          reviews: FALLBACK_REVIEWS,
+          averageRating: 5.0,
+          totalRatings: FALLBACK_REVIEWS.length,
+        },
+        { headers: cacheHeaders }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        source: 'google',
+        reviews: normalizedReviews,
+        averageRating: place.rating ?? null,
+        totalRatings: place.user_ratings_total ?? null,
       },
-      reviews,
-    });
+      { headers: cacheHeaders }
+    );
   } catch (error) {
     console.error('Google reviews API error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch Google reviews' },
-      { status: 500 }
+      {
+        source: 'fallback',
+        reviews: FALLBACK_REVIEWS,
+        averageRating: 5.0,
+        totalRatings: FALLBACK_REVIEWS.length,
+      },
+      { headers: cacheHeaders }
     );
   }
 }
