@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 /* ============================================
-   VeloDoctor Design System
+   VeloDoctor Design System - Premium Minimal
    CSS Variables + Base Styles
    ============================================ */
 
 :root {
-  /* Brand Colors */
-  --vd-primary: #00ACC2;    /* Moonstone (blue) */
-  --vd-accent: #FF6D00;     /* Pumpkin (orange) - CTAs */
-  --vd-dark: #293133;       /* Gunmetal - headings/text */
-  --vd-muted: #6B7280;      /* Gray-500 - body text */
-  --vd-surface: #F7FAFB;    /* Light surface bg */
+  /* Brand Colors - USE SPARINGLY AS ACCENTS */
+  --vd-primary: #00ACC2;    /* Moonstone (blue) - accents only */
+  --vd-accent: #FF6D00;     /* Pumpkin (orange) - CTAs only */
+  --vd-dark: #293133;       /* Gunmetal - primary text */
+  --vd-muted: #6B7280;      /* Gray-500 - secondary text */
+  --vd-surface: #F7FAFB;    /* Very light gray - subtle bg */
   --vd-border: #E5E7EB;     /* Gray-200 - borders */
-  --vd-white: #FFFFFF;      /* Pure white */
+  --vd-white: #FFFFFF;      /* Pure white - main bg */
 }
 
 @theme inline {
@@ -40,7 +40,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   line-height: 1.2;
   color: var(--vd-dark);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 h1 {
@@ -49,25 +49,25 @@ h1 {
 }
 
 h2 {
-  font-size: 2rem; /* 32px */
+  font-size: 1.875rem; /* 30px */
   font-weight: 700;
 }
 
 h3 {
   font-size: 1.5rem; /* 24px */
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* Responsive typography */
 @media (min-width: 768px) {
   h1 {
-    font-size: 3.5rem; /* 56px */
+    font-size: 3.75rem; /* 60px */
   }
   h2 {
-    font-size: 2.5rem; /* 40px */
+    font-size: 2.25rem; /* 36px */
   }
   h3 {
-    font-size: 1.875rem; /* 30px */
+    font-size: 1.75rem; /* 28px */
   }
 }
 
@@ -75,6 +75,23 @@ h3 {
 p {
   line-height: 1.7;
   color: rgb(55, 65, 81); /* gray-700 for readability */
+}
+
+/* Accent Underline Helper */
+.accent-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.accent-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--vd-accent), var(--vd-primary));
+  border-radius: 2px;
 }
 
 /* Focus States */
