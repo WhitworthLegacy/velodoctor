@@ -8,188 +8,179 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
 
-      {/* HERO SECTION */}
-      <section className="relative bg-gradient-to-br from-dark via-dark-lighter to-primary overflow-hidden">
+      {/* HERO SECTION - FRENCH */}
+      <section className="relative bg-gradient-to-br from-vdDark to-vdPrimary overflow-hidden">
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{
             backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
             backgroundSize: '32px 32px'
           }}></div>
         </div>
 
-        <Container className="relative z-10 py-16 md:py-24 lg:py-32">
-          <div className="flex flex-col items-center text-center">
+        <Container className="relative z-10 py-14 md:py-20">
+          <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
 
             {/* Logo Icon */}
-            <div className="w-20 h-20 bg-accent rounded-2xl flex items-center justify-center mb-8 shadow-2xl transform hover:scale-110 transition-transform">
-              <Zap className="w-10 h-10 text-white" strokeWidth={2.5} />
+            <div className="w-16 h-16 bg-vdAccent rounded-xl flex items-center justify-center mb-6 shadow-vd-lg">
+              <Zap className="w-9 h-9 text-white" strokeWidth={2.5} />
             </div>
 
             {/* Main Heading */}
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white mb-4 tracking-tight">
+            <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-3 tracking-tight">
               VELODOCTOR
             </h1>
 
             {/* Tagline */}
-            <p className="text-xl md:text-2xl font-semibold text-primary-light mb-6 tracking-wide">
-              You Ride, We Repair
+            <p className="text-lg md:text-xl font-semibold text-white/90 mb-6">
+              Vous roulez, on répare
             </p>
 
             {/* Subheading */}
-            <p className="max-w-2xl text-lg md:text-xl text-gray-300 mb-10 leading-relaxed">
-              Expert mobile repair service for bikes and e-scooters.
-              We come to you, so you can keep moving.
+            <p className="max-w-2xl text-base md:text-lg text-white/85 mb-8 leading-relaxed">
+              Service de réparation mobile expert pour vélos et trottinettes électriques.
+              Nous venons à vous pour que vous restiez en mouvement.
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-lg justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md justify-center">
               <Button
                 href="/services"
                 variant="primary"
                 size="lg"
-                icon={<Wrench size={22} />}
+                icon={<Wrench size={20} />}
               >
-                Book a Repair
+                Réserver une réparation
               </Button>
 
               <Button
                 href="/shop"
                 variant="secondary"
                 size="lg"
-                icon={<ShoppingBag size={22} />}
-                className="bg-white hover:bg-white border-white text-dark hover:text-dark hover:shadow-xl"
+                icon={<ShoppingBag size={20} />}
+                className="bg-white border-white text-vdDark hover:bg-gray-100"
               >
-                Shop Parts
+                Acheter des pièces
               </Button>
             </div>
 
           </div>
         </Container>
-
-        {/* Bottom Wave */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-12 md:h-20">
-            <path d="M0 120L60 105C120 90 240 60 360 45C480 30 600 30 720 37.5C840 45 960 60 1080 67.5C1200 75 1320 75 1380 75L1440 75V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white"/>
-          </svg>
-        </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <Section spacing="lg" background="white">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-dark mb-4">
-            How It Works
+      {/* HOW IT WORKS - FRENCH */}
+      <Section spacing="default" background="white" containerSize="default">
+        <div className="text-center mb-12 max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-vdDark mb-3">
+            Comment ça fonctionne
           </h2>
-          <p className="text-lg text-muted max-w-2xl mx-auto">
-            Get your bike or e-scooter fixed in three simple steps
+          <p className="text-base md:text-lg text-gray-600">
+            Réparez votre vélo ou trottinette en trois étapes simples
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
           <StepCard
             number="1"
             icon={<MapPin className="w-8 h-8" />}
-            title="Book Online"
-            description="Schedule a repair at your preferred location and time. We come to your home, office, or anywhere convenient."
+            title="Réservez en ligne"
+            description="Planifiez une réparation à l'endroit et l'heure qui vous conviennent. Nous venons chez vous, au bureau ou ailleurs."
           />
           <StepCard
             number="2"
             icon={<Wrench className="w-8 h-8" />}
-            title="We Fix It"
-            description="Our certified technician arrives with all necessary tools and parts to diagnose and repair your vehicle on the spot."
+            title="On répare"
+            description="Notre technicien certifié arrive avec tous les outils et pièces nécessaires pour diagnostiquer et réparer votre véhicule sur place."
           />
           <StepCard
             number="3"
             icon={<CheckCircle className="w-8 h-8" />}
-            title="Ride Again"
-            description="Quality guaranteed. Get back on the road with a fully functional bike or e-scooter, backed by our warranty."
+            title="Roulez à nouveau"
+            description="Qualité garantie. Reprenez la route avec un vélo ou une trottinette parfaitement fonctionnel, couvert par notre garantie."
           />
         </div>
       </Section>
 
-      {/* VALUE PROPOSITIONS */}
-      <Section spacing="lg" background="lighter">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-dark mb-4">
-            Why Choose VeloDoctor
+      {/* VALUE PROPOSITIONS - FRENCH */}
+      <Section spacing="default" background="surface" containerSize="default">
+        <div className="text-center mb-12 max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-bold text-vdDark mb-3">
+            Pourquoi choisir VeloDoctor
           </h2>
-          <p className="text-lg text-muted max-w-2xl mx-auto">
-            The trusted choice for urban riders and delivery professionals
+          <p className="text-base md:text-lg text-gray-600">
+            Le choix de confiance des cyclistes urbains et livreurs professionnels
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-6">
           <ValueCard
-            icon={<Truck className="w-10 h-10 text-primary" />}
-            title="Mobile Service"
-            description="No need to transport your bike. We bring the workshop to you, saving you time and hassle."
+            icon={<Truck className="w-9 h-9 text-vdPrimary" />}
+            title="Service mobile"
+            description="Pas besoin de transporter votre vélo. Nous apportons l'atelier chez vous, vous économisant temps et tracas."
           />
           <ValueCard
-            icon={<ShieldCheck className="w-10 h-10 text-accent" />}
-            title="Expert Repairs"
-            description="Certified technicians trained on all bike and e-scooter models. Professional service you can trust."
+            icon={<ShieldCheck className="w-9 h-9 text-vdAccent" />}
+            title="Réparations expertes"
+            description="Techniciens certifiés formés sur tous les modèles de vélos et trottinettes. Un service professionnel en qui vous pouvez avoir confiance."
           />
           <ValueCard
-            icon={<Clock className="w-10 h-10 text-primary" />}
-            title="Fast Turnaround"
-            description="Most repairs completed same-day. Get back on the road quickly with minimal downtime."
+            icon={<Clock className="w-9 h-9 text-vdPrimary" />}
+            title="Délai rapide"
+            description="La plupart des réparations sont effectuées le jour même. Reprenez la route rapidement avec un temps d'arrêt minimal."
           />
         </div>
       </Section>
 
-      {/* CTA SECTION */}
-      <Section spacing="lg" background="white">
-        <Card className="text-center bg-gradient-to-br from-primary to-primary-dark border-none" padding="lg">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Ready to Get Rolling?
-            </h2>
-            <p className="text-lg md:text-xl text-white/90 mb-8">
-              Book your mobile repair service today and experience the convenience of VeloDoctor.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                href="/services"
-                variant="primary"
-                size="lg"
-                icon={<Wrench size={22} />}
-              >
-                Schedule Repair
-              </Button>
-              <Button
-                href="/shop"
-                variant="ghost"
-                size="lg"
-                icon={<ShoppingBag size={22} />}
-                className="bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm"
-              >
-                Browse Shop
-              </Button>
-            </div>
+      {/* CTA SECTION - FRENCH - REDUCED PADDING */}
+      <Section spacing="sm" background="white" containerSize="default">
+        <div className="bg-gradient-to-br from-vdPrimary to-vdDark rounded-2xl p-8 md:p-12 text-center max-w-4xl mx-auto shadow-vd-md">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+            Prêt à rouler ?
+          </h2>
+          <p className="text-base md:text-lg text-white/90 mb-6 max-w-2xl mx-auto">
+            Réservez votre service de réparation mobile dès aujourd'hui et découvrez la commodité VeloDoctor.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button
+              href="/services"
+              variant="primary"
+              size="md"
+              icon={<Wrench size={20} />}
+            >
+              Planifier une réparation
+            </Button>
+            <Button
+              href="/shop"
+              variant="secondary"
+              size="md"
+              icon={<ShoppingBag size={20} />}
+              className="bg-white border-white text-vdDark hover:bg-gray-100"
+            >
+              Parcourir la boutique
+            </Button>
           </div>
-        </Card>
+        </div>
       </Section>
 
-      {/* FOOTER */}
-      <footer className="bg-dark text-gray-400 py-12">
+      {/* FOOTER - FRENCH */}
+      <footer className="bg-vdDark text-gray-400 py-10">
         <Container>
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white" />
+              <div className="w-9 h-9 bg-vdAccent rounded-lg flex items-center justify-center">
+                <Zap className="w-5 h-5 text-white" />
               </div>
-              <span className="text-white font-bold text-lg">VeloDoctor</span>
+              <span className="text-white font-bold text-base">VeloDoctor</span>
             </div>
 
             <div className="text-center md:text-left">
-              <p className="text-sm">© 2026 VeloDoctor. All rights reserved.</p>
-              <p className="text-xs text-gray-500 mt-1">You Ride, We Repair</p>
+              <p className="text-sm">© 2026 VeloDoctor. Tous droits réservés.</p>
+              <p className="text-xs text-gray-500 mt-1">Vous roulez, on répare</p>
             </div>
 
-            <div className="flex gap-6 text-sm">
-              <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
-              <a href="/terms" className="hover:text-white transition-colors">Terms</a>
+            <div className="flex gap-5 text-sm">
+              <a href="/confidentialite" className="hover:text-white transition-colors">Confidentialité</a>
+              <a href="/conditions" className="hover:text-white transition-colors">Conditions</a>
               <a href="/contact" className="hover:text-white transition-colors">Contact</a>
             </div>
           </div>
@@ -200,24 +191,24 @@ export default function Home() {
   );
 }
 
-// Step Card Component for "How It Works"
+// Step Card Component
 function StepCard({ number, icon, title, description }) {
   return (
     <div className="relative">
       <Card className="text-center h-full" hover={true}>
         {/* Step Number Badge */}
-        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-accent rounded-full flex items-center justify-center shadow-lg">
-          <span className="text-white font-bold text-xl">{number}</span>
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-11 h-11 bg-vdAccent rounded-full flex items-center justify-center shadow-vd-sm">
+          <span className="text-white font-bold text-lg">{number}</span>
         </div>
 
         {/* Icon */}
-        <div className="bg-primary/10 text-primary p-4 rounded-2xl inline-flex mb-6 mt-4">
+        <div className="bg-vdPrimary/10 text-vdPrimary p-3.5 rounded-xl inline-flex mb-4 mt-4">
           {icon}
         </div>
 
         {/* Content */}
-        <h3 className="text-xl font-bold text-dark mb-3">{title}</h3>
-        <p className="text-muted leading-relaxed">{description}</p>
+        <h3 className="text-lg md:text-xl font-bold text-vdDark mb-2">{title}</h3>
+        <p className="text-sm md:text-base text-gray-600 leading-relaxed">{description}</p>
       </Card>
     </div>
   );
@@ -227,11 +218,11 @@ function StepCard({ number, icon, title, description }) {
 function ValueCard({ icon, title, description }) {
   return (
     <Card className="text-center h-full group" hover={true}>
-      <div className="bg-background-light p-5 rounded-2xl inline-flex mb-6 group-hover:scale-110 transition-transform">
+      <div className="bg-vdSurface p-4 rounded-xl inline-flex mb-4 group-hover:scale-105 transition-transform">
         {icon}
       </div>
-      <h3 className="text-xl font-bold text-dark mb-3">{title}</h3>
-      <p className="text-muted leading-relaxed">{description}</p>
+      <h3 className="text-lg md:text-xl font-bold text-vdDark mb-2">{title}</h3>
+      <p className="text-sm md:text-base text-gray-600 leading-relaxed">{description}</p>
     </Card>
   );
 }

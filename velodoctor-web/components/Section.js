@@ -14,21 +14,20 @@ export default function Section({
   spacing = 'default',
   background = 'white',
 }) {
-  // Spacing variants
+  // Spacing variants - REDUCED for tighter layout
   const spacings = {
-    sm: 'py-8 md:py-12',       // Smaller sections
-    default: 'py-12 md:py-16', // Standard sections
-    lg: 'py-16 md:py-24',      // Hero sections
+    sm: 'py-8 md:py-10',       // Smaller sections
+    default: 'py-10 md:py-14', // Standard sections
+    lg: 'py-12 md:py-20',      // Hero sections
     none: '',                   // No padding
   };
 
   // Background variants
   const backgrounds = {
     white: 'bg-white',
-    light: 'bg-background-light',
-    lighter: 'bg-background-lighter',
-    dark: 'bg-dark text-white',
-    primary: 'bg-primary text-white',
+    surface: 'bg-vdSurface',
+    dark: 'bg-vdDark text-white',
+    primary: 'bg-vdPrimary text-white',
   };
 
   return (

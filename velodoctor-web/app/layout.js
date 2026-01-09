@@ -10,13 +10,13 @@ const poppins = Poppins({
 });
 
 export const metadata = {
-  title: "VeloDoctor - You Ride, We Repair",
-  description: "Réparation de vélos et trottinettes électriques à domicile.",
+  title: "VeloDoctor - Vous roulez, on répare",
+  description: "Service de réparation mobile expert pour vélos et trottinettes électriques. Nous venons à vous.",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <body className={`${poppins.variable} antialiased`}>
         {children}
       </body>
