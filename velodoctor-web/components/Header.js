@@ -1,7 +1,6 @@
 import Link from 'next/link';
-import { Zap, Menu, X } from 'lucide-react';
+import { Zap, Menu } from 'lucide-react';
 import Button from './Button';
-import { useState } from 'react';
 
 export default function Header() {
   return (
@@ -40,13 +39,12 @@ export default function Header() {
             </Button>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 text-gray-600 hover:text-vdPrimary"
-            aria-label="Menu"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
+          {/* Mobile Menu Button - Placeholder */}
+          <Link href="/booking" className="md:hidden">
+            <Button variant="primary" size="sm">
+              Réserver
+            </Button>
+          </Link>
         </div>
       </div>
     </header>
