@@ -2,7 +2,7 @@
 
 ## Overview
 
-The VeloDoctor booking system allows customers to book repair appointments through a 4-step wizard interface. The system uses fixed time slots and checks availability against a Supabase database.
+The VeloDoctor booking system allows customers to book repair appointments through a 4-step wizard interface. The system uses fixed time slots and checks availability against the existing Supabase project used by `velodoctor-admin`.
 
 ## Key Features
 
@@ -35,11 +35,9 @@ Slots are defined in:
 
 ### Appointments Table
 
-Run the SQL schema in your Supabase SQL Editor:
+Apply the migration in your existing Supabase project (do not create a new project for `velodoctor-web`):
 
-```sql
--- See supabase-schema.sql for full schema
-```
+`supabase/migrations/20260109101000_appointments_booking.sql`
 
 **Key Columns:**
 - `id`: UUID (primary key)
@@ -56,12 +54,14 @@ Run the SQL schema in your Supabase SQL Editor:
 - `idx_appointments_status`: For filtering by status
 
 **RLS Policies:**
-- Public can SELECT (for availability checking)
-- Only service role can INSERT/UPDATE (via API routes)
+- Availability checks use a public SELECT policy when needed
+- Writes happen server-side via Next.js API routes using the service role key
 
 ---
 
 ## API Routes
+
+All Supabase access happens in Next.js server routes (never directly from the client).
 
 ### GET /api/availability
 
@@ -138,7 +138,13 @@ Run the SQL schema in your Supabase SQL Editor:
 3. Requires `customerAddress` for 'Collecte' service
 4. Validates `scheduledAt` is a valid future datetime
 5. Re-checks slot availability (prevents race conditions)
-6. Inserts appointment using Supabase service role key
+6. Inserts appointment using Supabase service role key (server-side only)
+7. Sends email notifications via Google Apps Script webhook
+
+**Email Notifications:**
+After successful booking creation, the API automatically sends:
+- **Admin notification**: Email to VeloDoctor with full booking details
+- **Customer confirmation**: Professional confirmation email with appointment summary
 
 ---
 
@@ -178,7 +184,7 @@ User chooses between:
 
 ## Environment Variables
 
-Add these to your `.env.local` file:
+Create a local `.env.local` (not committed) with credentials for the same Supabase project as admin:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -236,10 +242,11 @@ slotStart < appointmentEnd AND slotEnd > appointmentStart
 
 ## Testing the System
 
-### 1. Setup Supabase
+### 1. Setup Supabase (shared DB)
 ```bash
-# 1. Create Supabase project at https://supabase.com
-# 2. Run supabase-schema.sql in SQL Editor
+# 1. Use the existing Supabase project (same as velodoctor-admin)
+# 1b. Do NOT create a new Supabase project for velodoctor-web
+# 2. Run supabase/migrations/20260109101000_appointments_booking.sql
 # 3. Add environment variables to .env.local
 ```
 
@@ -250,7 +257,7 @@ curl "http://localhost:3000/api/availability?date=2026-01-15"
 
 ### 3. Test Booking API
 ```bash
-curl -X POST http://localhost:3000/api/availability \
+curl -X POST http://localhost:3000/api/booking \
   -H "Content-Type: application/json" \
   -d '{
     "serviceType": "Collecte",
@@ -316,7 +323,7 @@ velodoctor-web/
 │   │       └── route.js          # POST create appointment
 │   └── booking/
 │       └── page.js               # 4-step booking wizard UI
-├── supabase-schema.sql           # Database schema
+├── ../supabase/migrations/20260109101000_appointments_booking.sql  # Shared DB migration
 └── BOOKING_SYSTEM.md             # This documentation
 ```
 

@@ -151,6 +151,36 @@ export async function POST(request) {
       );
     }
 
+    // Send email notifications via Google Apps Script
+    try {
+      const webhookUrl = process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL;
+
+      if (webhookUrl) {
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            appointment: {
+              id: data.id,
+              serviceType: data.service_type,
+              scheduledAt: data.scheduled_at,
+            },
+            customer: {
+              name: body.customerName,
+              email: body.customerEmail,
+              phone: body.customerPhone,
+              address: body.customerAddress || null,
+              vehicleType: body.vehicleType || null,
+              message: body.message || null,
+            }
+          })
+        });
+      }
+    } catch (emailError) {
+      // Log error but don't fail the booking
+      console.error('Email notification error:', emailError);
+    }
+
     // Return sanitized appointment data (exclude sensitive fields if needed)
     return NextResponse.json({
       success: true,
