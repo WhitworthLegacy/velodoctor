@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { ShoppingBag } from "lucide-react";
 import Section from "@/components/Section";
 import Card from "@/components/Card";

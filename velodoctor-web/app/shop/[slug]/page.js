@@ -1,8 +1,12 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { ShoppingBag, CheckCircle, ArrowLeft } from "lucide-react";
 import Section from "@/components/Section";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import Link from "next/link";
+
 
 import { getDbProductBySlug } from "@/lib/productsDb";
 import { FALLBACK_PRODUCTS_ENABLED, getProductBySlug, toUiProductFromFallback } from "@/lib/products";
@@ -23,7 +27,7 @@ function toUiFromDb(db) {
 
 export async function generateMetadata({ params }) {
   try {
-    const db = await getDbProductBySlug(params.slug, { allowUnpublished: true }); // tolérant
+    const db = await getDbProductBySlug(params.slug, { allowUnpublished: false }); // tolérant
     if (db) {
       return {
         title: db.seo_title || `${db.title} | VeloDoctor`,
@@ -50,7 +54,7 @@ export default async function ProductPage({ params }) {
 
   try {
     // allowUnpublished: true pour debug: tu verras le produit même si pas publié
-    const db = await getDbProductBySlug(params.slug, { allowUnpublished: true });
+    const db = await getDbProductBySlug(params.slug, { allowUnpublished: false });
     if (db) product = toUiFromDb(db);
   } catch {}
 
@@ -59,8 +63,6 @@ export default async function ProductPage({ params }) {
     if (fb) {
       usedFallback = true;
       product = toUiProductFromFallback(fb);
-      // harmonise title
-      product.title = product.title || fb.name;
     }
   }
 
