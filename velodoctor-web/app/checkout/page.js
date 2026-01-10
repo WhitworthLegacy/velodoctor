@@ -54,14 +54,14 @@ export default function CheckoutPage() {
             <div className="space-y-3 mb-8">
               <div className="flex items-center justify-center gap-2 text-gray-700">
                 <span className="font-medium">Téléphone :</span>
-                <a href="tel:+32XXXXXXXXX" className="text-vdPrimary hover:underline">
-                  +32 XXX XX XX XX
+                <a href="tel:+32456951445" className="text-vdPrimary hover:underline">
+                  +32 456 95 14 45
                 </a>
               </div>
               <div className="flex items-center justify-center gap-2 text-gray-700">
                 <span className="font-medium">WhatsApp :</span>
-                <a href="https://wa.me/32XXXXXXXXX" className="text-vdPrimary hover:underline">
-                  +32 XXX XX XX XX
+                <a href="https://wa.me/+32456951445" className="text-vdPrimary hover:underline">
+                  +32 456 95 14 45
                 </a>
               </div>
               <div className="flex items-center justify-center gap-2 text-gray-700">
@@ -74,7 +74,7 @@ export default function CheckoutPage() {
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
-                href="https://wa.me/32XXXXXXXXX"
+                href="https://wa.me/+32456951445"
                 variant="primary"
                 size="lg"
               >
