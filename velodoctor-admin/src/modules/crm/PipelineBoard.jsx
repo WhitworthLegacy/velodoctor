@@ -23,6 +23,7 @@ export default function PipelineBoard() {
   const [columns, setColumns] = useState([]);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -49,8 +50,11 @@ export default function PipelineBoard() {
       const orderedColumns = buildColumns(colsData, leadsData);
       setColumns(orderedColumns);
       setLeads(leadsData);
+      setError(null);
     } catch (error) {
       console.error("Erreur chargement CRM:", error);
+      const status = error?.status ? ` (HTTP ${error.status})` : '';
+      setError(`Impossible de charger le CRM${status}.`);
     } finally {
       setLoading(false);
     }
@@ -259,6 +263,12 @@ export default function PipelineBoard() {
           </button>
         </div>
       </header>
+
+      {error && (
+        <div style={{ margin: '0 20px 20px', padding: '10px', background: '#fee2e2', color: '#dc2626', borderRadius: '8px' }}>
+          {error}
+        </div>
+      )}
 
       <div style={{ flex: 1, display: 'flex', gap: '16px', padding: '0 20px 20px 20px', overflowY: 'hidden' }}>
         {columns.map((col) => (

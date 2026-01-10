@@ -26,6 +26,7 @@ const localizer = dateFnsLocalizer({
 export default function PlanningDashboard() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -37,40 +38,47 @@ export default function PlanningDashboard() {
 
   async function fetchData() {
     setLoading(true);
-    
-    // 1. Récupérer les RDV Logistiques (Transport)
-    const appointmentsPayload = await apiFetch('/api/admin/appointments');
-    const appointments = appointmentsPayload.appointments || [];
+    try {
+      // 1. Récupérer les RDV Logistiques (Transport)
+      const appointmentsPayload = await apiFetch('/api/admin/appointments');
+      const appointments = appointmentsPayload.appointments || [];
 
-    // 2. Récupérer les Interventions (Atelier)
-    // Note : Pour l'instant on utilise 'created_at' comme date, 
-    // idéalement on ajoutera une colonne 'planned_at' plus tard.
-    const interventionsPayload = await apiFetch('/api/admin/interventions');
-    const interventions = interventionsPayload.interventions || [];
+      // 2. Récupérer les Interventions (Atelier)
+      // Note : Pour l'instant on utilise 'created_at' comme date,
+      // idéalement on ajoutera une colonne 'planned_at' plus tard.
+      const interventionsPayload = await apiFetch('/api/admin/interventions');
+      const interventions = interventionsPayload.interventions || [];
 
-    // 3. Fusionner et formater pour le calendrier
-    const logisticsEvents = (appointments || []).map(apt => ({
-      id: `apt-${apt.id}`,
-      title: `🚛 ${apt.clients?.full_name || 'Client'} - ${apt.type === 'pickup' ? 'Récup' : 'Livr'}`,
-      start: new Date(apt.scheduled_at),
-      end: new Date(new Date(apt.scheduled_at).getTime() + 60 * 60 * 1000), // Durée fictive 1h
-      type: 'logistics',
-      status: apt.status,
-      appointment: apt,
-    }));
+      // 3. Fusionner et formater pour le calendrier
+      const logisticsEvents = (appointments || []).map(apt => ({
+        id: `apt-${apt.id}`,
+        title: `🚛 ${apt.clients?.full_name || 'Client'} - ${apt.type === 'pickup' ? 'Récup' : 'Livr'}`,
+        start: new Date(apt.scheduled_at),
+        end: new Date(new Date(apt.scheduled_at).getTime() + 60 * 60 * 1000), // Durée fictive 1h
+        type: 'logistics',
+        status: apt.status,
+        appointment: apt,
+      }));
 
-    const workshopEvents = (interventions || []).map(int => ({
-      id: `int-${int.id}`,
-      title: `🔧 ${int.vehicles?.brand} (${int.status})`,
-      start: new Date(int.created_at), // Date d'entrée atelier
-      end: new Date(new Date(int.created_at).getTime() + 2 * 60 * 60 * 1000), // Durée fictive 2h
-      type: 'workshop',
-      status: int.status,
-      intervention: int,
-    }));
+      const workshopEvents = (interventions || []).map(int => ({
+        id: `int-${int.id}`,
+        title: `🔧 ${int.vehicles?.brand} (${int.status})`,
+        start: new Date(int.created_at), // Date d'entrée atelier
+        end: new Date(new Date(int.created_at).getTime() + 2 * 60 * 60 * 1000), // Durée fictive 2h
+        type: 'workshop',
+        status: int.status,
+        intervention: int,
+      }));
 
-    setEvents([...logisticsEvents, ...workshopEvents]);
-    setLoading(false);
+      setEvents([...logisticsEvents, ...workshopEvents]);
+      setError(null);
+    } catch (fetchError) {
+      console.error(fetchError);
+      const status = fetchError?.status ? ` (HTTP ${fetchError.status})` : '';
+      setError(`Impossible de charger le planning${status}.`);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function fetchAdminStatus() {
@@ -116,7 +124,11 @@ export default function PlanningDashboard() {
         <h1>📅 Agenda Maître</h1>
       </header>
 
-      {loading ? <p>Chargement du planning...</p> : (
+      {loading ? <p>Chargement du planning...</p> : error ? (
+        <div style={{ padding: '10px', background: '#fee2e2', color: '#dc2626', borderRadius: '8px' }}>
+          {error}
+        </div>
+      ) : (
         <div style={{ flex: 1, background: 'white', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <Calendar
             localizer={localizer}

@@ -9,6 +9,7 @@ export default function ClientList() {
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [clientAppointments, setClientAppointments] = useState([]);
@@ -24,8 +25,11 @@ export default function ClientList() {
     try {
       const payload = await apiFetch('/api/admin/clients');
       setClients(payload.clients || []);
+      setError(null);
     } catch (err) {
       console.error(err);
+      const status = err?.status ? ` (HTTP ${err.status})` : '';
+      setError(`Impossible de charger les clients${status}.`);
     } finally {
       setLoading(false);
     }
@@ -126,7 +130,11 @@ export default function ClientList() {
 
       {loading ? <p>Chargement...</p> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filteredClients.length === 0 ? (
+          {error ? (
+            <div style={{ padding: '10px', background: '#fee2e2', color: '#dc2626', borderRadius: '8px' }}>
+              {error}
+            </div>
+          ) : filteredClients.length === 0 ? (
             <p>Aucun client trouvé.</p>
           ) : (
             filteredClients.map((client) => (
