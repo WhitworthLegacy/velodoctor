@@ -1,11 +1,16 @@
-const slugify = (value) =>
+// lib/products.ts
+
+export const slugify = (value: string) =>
   value
     .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '');
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+
+export const FALLBACK_PRODUCTS_ENABLED = true;
 
 const baseProducts = [
   {
@@ -80,12 +85,7 @@ const baseProducts = [
     category: "Accessoires",
     description:
       "Éclairage LED puissant pour visibilité maximale de nuit et par mauvais temps.",
-    features: [
-      "Lumen élevé",
-      "Recharge USB",
-      "Fixation rapide",
-      "Autonomie longue durée",
-    ],
+    features: ["Lumen élevé", "Recharge USB", "Fixation rapide", "Autonomie longue durée"],
     image: "/placeholder-light.jpg",
     inStock: true,
   },
@@ -96,40 +96,34 @@ const baseProducts = [
     category: "Électronique",
     description:
       "Contrôleur moteur 48V pour vélos électriques. Idéal pour remplacer une unité défaillante.",
-    features: [
-      "Compatibilité: moteurs 48V",
-      "Gestion thermique améliorée",
-      "Paramétrage en atelier",
-      "Garantie: 1 an",
-    ],
+    features: ["Compatibilité: moteurs 48V", "Gestion thermique améliorée", "Paramétrage en atelier", "Garantie: 1 an"],
     image: "/placeholder-controller.jpg",
     inStock: false,
   },
 ];
 
-export const products = baseProducts.map((product) => ({
-  ...product,
-  slug: product.slug || slugify(product.name),
+export const products = baseProducts.map((p) => ({
+  ...p,
+  slug: slugify(p.name),
 }));
 
-export const getProductBySlug = (slug) =>
-  products.find((product) => product.slug === slug) || null;
+export const getProductBySlug = (slug: string) =>
+  products.find((p) => p.slug === slug) || null;
 
-if (process.env.NODE_ENV !== 'production') {
-  const slugCounts = products.reduce((acc, product) => {
-    if (!product.slug) {
-      console.warn('[products] Missing slug for product:', product.name);
-      return acc;
-    }
-    acc[product.slug] = (acc[product.slug] || 0) + 1;
-    return acc;
-  }, {});
-
-  Object.entries(slugCounts).forEach(([slug, count]) => {
-    if (count > 1) {
-      console.warn(`[products] Duplicate slug detected: ${slug}`);
-    }
-  });
+export function toUiProductFromFallback(p: any) {
+  return {
+    id: String(p.id),
+    slug: p.slug,
+    title: p.name,
+    description: p.description || null,
+    cover_image_url: p.image || null,
+    price: typeof p.price === "number" ? p.price : null,
+    inStock: !!p.inStock,
+    features: Array.isArray(p.features) ? p.features : [],
+    category: p.category || null,
+  };
 }
 
-console.log('[products] slugs:', products.map(p => p.slug));
+export function toUiProductsFromFallback(list = products) {
+  return list.map(toUiProductFromFallback);
+}
