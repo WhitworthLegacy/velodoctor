@@ -1,14 +1,8 @@
-import { unstable_noStore as noStore } from "next/cache";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
 import { ShoppingBag, CheckCircle, ArrowLeft } from "lucide-react";
 import Section from "@/components/Section";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import Link from "next/link";
-
 
 import { getDbProductBySlug } from "@/lib/productsDb";
 import { FALLBACK_PRODUCTS_ENABLED, getProductBySlug, toUiProductFromFallback } from "@/lib/products";
@@ -27,42 +21,68 @@ function toUiFromDb(db) {
   };
 }
 
+async function resolveSlug(params) {
+  // Next 15: params peut être un Promise
+  const p = await params;
+  return p?.slug ? String(p.slug) : null;
+}
+
 export async function generateMetadata({ params }) {
+  const slug = await resolveSlug(params);
+
+  if (!slug) return { title: "Produit non trouvé | VeloDoctor" };
+
   try {
-    const db = await getDbProductBySlug(params.slug, { allowUnpublished: false }); // tolérant
+    const db = await getDbProductBySlug(slug, { allowUnpublished: false });
     if (db) {
       return {
         title: db.seo_title || `${db.title} | VeloDoctor`,
         description: db.seo_description || db.description || undefined,
       };
     }
-  } catch {}
+  } catch (e) {
+    console.error("[shop][slug] generateMetadata DB error:", e);
+  }
 
-  // fallback
-  const fb = getProductBySlug(params.slug);
+  const fb = getProductBySlug(slug);
   if (fb) {
-    return {
-      title: `${fb.name} | VeloDoctor`,
-      description: fb.description,
-    };
+    return { title: `${fb.name} | VeloDoctor`, description: fb.description };
   }
 
   return { title: "Produit non trouvé | VeloDoctor" };
 }
 
 export default async function ProductPage({ params }) {
-  noStore();
+  const slug = await resolveSlug(params);
+
   let product = null;
   let usedFallback = false;
 
+  if (!slug) {
+    return (
+      <main className="min-h-screen bg-white">
+        <Section spacing="lg" background="white">
+          <div className="text-center max-w-2xl mx-auto">
+            <h1 className="text-3xl font-bold text-vdDark mb-4">Produit non trouvé</h1>
+            <p className="text-gray-600 mb-6">Slug invalide.</p>
+            <Button href="/shop" variant="secondary" icon={<ArrowLeft size={20} />}>
+              Retour à la boutique
+            </Button>
+          </div>
+        </Section>
+      </main>
+    );
+  }
+
   try {
-    // allowUnpublished: true pour debug: tu verras le produit même si pas publié
-    const db = await getDbProductBySlug(params.slug, { allowUnpublished: false });
+    const db = await getDbProductBySlug(slug, { allowUnpublished: false });
     if (db) product = toUiFromDb(db);
-  } catch {}
+  } catch (e) {
+    console.error("[shop][slug] DB error:", e);
+  }
 
   if (!product && FALLBACK_PRODUCTS_ENABLED) {
-    const fb = getProductBySlug(params.slug);
+    const fb = getProductBySlug(slug);
     if (fb) {
       usedFallback = true;
       product = toUiProductFromFallback(fb);
@@ -124,7 +144,6 @@ export default async function ProductPage({ params }) {
             </div>
 
             {product.description && <p className="text-gray-700 leading-relaxed mb-8">{product.description}</p>}
-
             {usedFallback && <p className="text-sm text-gray-500 mb-6">(Mode dégradé : affichage provisoire)</p>}
 
             {Array.isArray(product.features) && product.features.length > 0 && (
