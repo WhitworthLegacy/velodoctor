@@ -1,3 +1,5 @@
+import { unstable_noStore as noStore } from "next/cache";
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -49,6 +51,7 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function ProductPage({ params }) {
+  noStore();
   let product = null;
   let usedFallback = false;
 

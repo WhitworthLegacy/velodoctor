@@ -1,3 +1,5 @@
+import { unstable_noStore as noStore } from "next/cache";
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -27,6 +29,7 @@ function isInStock(dbProduct) {
 }
 
 export default async function ShopPage() {
+  noStore(); // ⬅️ cette ligne uniquement
   let dbProducts = [];
   let dbError = null;
 
