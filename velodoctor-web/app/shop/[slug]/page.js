@@ -3,41 +3,31 @@ import Section from '@/components/Section';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Link from 'next/link';
-import { getProductBySlug } from '@/lib/products';
-
-
-
+import { getDbProductBySlug } from '@/lib/productsDb'; // ✅ nouveau
 
 export async function generateMetadata({ params }) {
-  console.log('[ProductPage] slug param:', params.slug);
-  const product = getProductBySlug(params.slug);
+  const product = await getDbProductBySlug(params.slug);
 
   if (!product) {
-    return {
-      title: "Produit non trouvé | VeloDoctor",
-    };
+    return { title: "Produit non trouvé | VeloDoctor" };
   }
 
-  return {
-    title: `${product.name} - ${product.price}€ | VeloDoctor`,
-    description: product.description,
-  };
+  const title = product.seo_title || `${product.title} | VeloDoctor`;
+  const description = product.seo_description || product.description || "Produit VeloDoctor";
+
+  return { title, description };
 }
 
-export default function ProductPage({ params }) {
-  const product = getProductBySlug(params.slug);
+export default async function ProductPage({ params }) {
+  const product = await getDbProductBySlug(params.slug);
 
   if (!product) {
     return (
       <main className="min-h-screen bg-white">
         <Section spacing="lg" background="white">
           <div className="text-center max-w-2xl mx-auto">
-            <h1 className="text-3xl font-bold text-vdDark mb-4">
-              Produit non trouvé
-            </h1>
-            <p className="text-gray-600 mb-6">
-              Ce produit n'existe pas ou n'est plus disponible.
-            </p>
+            <h1 className="text-3xl font-bold text-vdDark mb-4">Produit non trouvé</h1>
+            <p className="text-gray-600 mb-6">Ce produit n'existe pas ou n'est plus disponible.</p>
             <Button href="/shop" variant="secondary" icon={<ArrowLeft size={20} />}>
               Retour à la boutique
             </Button>
@@ -47,10 +37,13 @@ export default function ProductPage({ params }) {
     );
   }
 
+  const price = product.inventory_items?.price_sell ?? null;
+  const qty = product.inventory_items?.quantity ?? 0;
+  const inStock = qty > 0;
+
   return (
     <main className="min-h-screen bg-white">
 
-      {/* Back link */}
       <Section spacing="sm" background="white">
         <Link href="/shop" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-vdPrimary transition">
           <ArrowLeft size={16} />
@@ -58,35 +51,33 @@ export default function ProductPage({ params }) {
         </Link>
       </Section>
 
-      {/* Product Detail */}
       <Section spacing="default" background="white">
         <div className="grid md:grid-cols-2 gap-12">
 
-          {/* Product Image */}
           <div>
-            <div className="aspect-square bg-vdSurface rounded-2xl flex items-center justify-center sticky top-24">
-              <ShoppingBag className="w-32 h-32 text-gray-300" />
+            <div className="aspect-square bg-vdSurface rounded-2xl flex items-center justify-center sticky top-24 overflow-hidden">
+              {product.cover_image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={product.cover_image_url}
+                  alt={product.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <ShoppingBag className="w-32 h-32 text-gray-300" />
+              )}
             </div>
           </div>
 
-          {/* Product Info */}
           <div>
-            {/* Category Badge */}
-            <div className="mb-4">
-              <span className="text-sm font-medium text-vdPrimary bg-vdPrimary/10 px-3 py-1 rounded-full">
-                {product.category}
-              </span>
-            </div>
-
-            <h1 className="text-4xl font-bold text-vdDark mb-4">
-              {product.name}
-            </h1>
+            <h1 className="text-4xl font-bold text-vdDark mb-4">{product.title}</h1>
 
             <div className="flex items-center gap-4 mb-6">
               <p className="text-4xl font-bold text-vdAccent">
-                {product.price}€
+                {price !== null ? `${price}€` : '—'}
               </p>
-              {product.inStock ? (
+
+              {inStock ? (
                 <span className="text-sm text-green-600 font-medium bg-green-50 px-3 py-1 rounded-full">
                   En stock
                 </span>
@@ -97,59 +88,37 @@ export default function ProductPage({ params }) {
               )}
             </div>
 
-            <p className="text-gray-700 leading-relaxed mb-8">
-              {product.description}
-            </p>
+            {product.description && (
+              <p className="text-gray-700 leading-relaxed mb-8">{product.description}</p>
+            )}
 
-            {/* Features */}
+            {/* NOTE: features n’existent pas en DB actuellement -> tu peux soit:
+                - les retirer
+                - ou ajouter un champ JSONB features dans products
+            */}
             <Card className="mb-8">
-              <h3 className="font-bold text-vdDark mb-4">Caractéristiques</h3>
-              <ul className="space-y-2">
-                {product.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
+              <h3 className="font-bold text-vdDark mb-2">Infos</h3>
+              <p className="text-sm text-gray-600">
+                Référence stock: {product.inventory_items?.name || '—'}
+              </p>
+              <p className="text-sm text-gray-600">
+                Stock: {qty}
+              </p>
             </Card>
 
-            {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 href="/cart"
                 variant="primary"
                 size="lg"
                 className="flex-1"
-                disabled={!product.inStock}
+                disabled={!inStock}
               >
-                {product.inStock ? "Ajouter au panier" : "Rupture de stock"}
+                {inStock ? "Ajouter au panier" : "Rupture de stock"}
               </Button>
-              <Button
-                href="/contact"
-                variant="secondary"
-                size="lg"
-              >
+              <Button href="/contact" variant="secondary" size="lg">
                 Poser une question
               </Button>
-            </div>
-
-            {/* Additional Info */}
-            <div className="mt-8 pt-8 border-t border-vdBorder">
-              <div className="space-y-3 text-sm text-gray-600">
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-vdPrimary flex-shrink-0 mt-0.5" />
-                  <span>Livraison gratuite à Bruxelles</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-vdPrimary flex-shrink-0 mt-0.5" />
-                  <span>Installation disponible (+30€)</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-vdPrimary flex-shrink-0 mt-0.5" />
-                  <span>Garantie constructeur incluse</span>
-                </div>
-              </div>
             </div>
           </div>
         </div>

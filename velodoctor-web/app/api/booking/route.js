@@ -206,10 +206,13 @@ export async function POST(request) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('API error:', error);
+    console.error('Supabase booking insert error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to create appointment', details: error },
       { status: 500 }
     );
   }
+    
+
+  
 }
