@@ -8,42 +8,58 @@ export async function OPTIONS() {
 
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await ctx.params;
+
+  const auth = await requireStaff(request);
+  if ("error" in auth) {
+    // auth.error est déjà une Response/NextResponse -> on applique CORS et on return
+    return applyCors(auth.error);
+  }
+
   try {
-    const { id } = context.params;
-
-    const auth = await requireStaff(request);
-    if ("error" in auth) {
-      return auth.error;
-    }
-
+    // 1) Récupérer le RDV (si besoin)
     const { data: appt, error: apptErr } = await auth.supabase
       .from("appointments")
-      .update({ status: "done" })
-      .eq("id", id)
       .select("id, client_id")
-      .single();
+      .eq("id", id)
+      .maybeSingle();
 
-    if (apptErr || !appt) {
-      console.error("[complete] appointment update error:", apptErr);
-      return applyCors(NextResponse.json({ error: "Failed to complete appointment" }, { status: 500 }));
+    if (apptErr) {
+      console.error("[complete] fetch appointment failed:", apptErr);
+      return applyCors(
+        NextResponse.json({ error: "Failed to fetch appointment" }, { status: 500 })
+      );
+    }
+    if (!appt) {
+      return applyCors(
+        NextResponse.json({ error: "Appointment not found" }, { status: 404 })
+      );
     }
 
-    if (appt.client_id) {
-      const { error: clientErr } = await auth.supabase
-        .from("clients")
-        .update({ crm_stage: "cloture" })
-        .eq("id", appt.client_id);
+    // 2) Marquer le RDV comme terminé (adapte le status si ton enum est différent)
+    const { error: updErr } = await auth.supabase
+      .from("appointments")
+      .update({ status: "done" })
+      .eq("id", id);
 
-      if (clientErr) {
-        console.error("[complete] client stage update error:", clientErr);
-      }
+    if (updErr) {
+      console.error("[complete] update appointment failed:", updErr);
+      return applyCors(
+        NextResponse.json({ error: "Failed to complete appointment" }, { status: 500 })
+      );
     }
+
+    // 3) Optionnel: avancer le client dans le CRM (si ton app le veut)
+    // Exemple: passage en "atelier" ou autre (adapte selon tes colonnes)
+    // await auth.supabase.from("clients").update({ crm_stage: "atelier" }).eq("id", appt.client_id);
 
     return applyCors(NextResponse.json({ success: true }));
-  } catch (e: any) {
-    console.error("[complete] error:", e);
-    return applyCors(NextResponse.json({ error: "Internal server error" }, { status: 500 }));
+  } catch (e) {
+    console.error("[complete] unexpected error:", e);
+    return applyCors(
+      NextResponse.json({ error: "Failed to complete appointment" }, { status: 500 })
+    );
   }
 }
