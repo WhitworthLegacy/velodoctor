@@ -8,9 +8,9 @@ export async function OPTIONS() {
 
 export async function GET(
   request: NextRequest,
-  ctx: { params: { id: string } }
+  ctx: { params: Promise<{ id: string }> }
 ) {
-  const { id } = ctx.params;
+  const { id } = await ctx.params;
   const auth = await requireStaff(request);
   if ('error' in auth) {
     return auth.error;
