@@ -4,7 +4,7 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 
 // On reçoit "onUpdate" en plus de "appointment"
-export default function AppointmentCard({ appointment, onUpdate }) {
+export default function AppointmentCard({ appointment, onUpdate, onDetails }) {
   
   const time = new Date(appointment.scheduled_at).toLocaleTimeString('fr-FR', {
     hour: '2-digit', minute: '2-digit'
@@ -59,22 +59,40 @@ export default function AppointmentCard({ appointment, onUpdate }) {
         {address}
       </div>
 
-      {/* Bouton d'action - Caché si déjà terminé */}
-      {!isDone && (
-        <div style={{ marginTop: '10px' }}>
-          <Button 
-            variant={isPickup ? "primary" : "secondary"}
-            onClick={() => {
+      {/* Boutons d'action */}
+      <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+        <div style={{ flex: 1 }}>
+          {!isDone && (
+            <Button
+              variant={isPickup ? "primary" : "secondary"}
+              onClick={() => {
                 // Au clic, on appelle le chef pour dire "C'est fait !"
-                if(confirm('Confirmer cette action ?')) {
-                    onUpdate(appointment.id, 'done', appointment);
+                if (confirm('Confirmer cette action ?')) {
+                  onUpdate(appointment.id, 'done', appointment);
                 }
+              }}
+            >
+              {isPickup ? 'Récupérer le véhicule' : 'Livrer au client'}
+            </Button>
+          )}
+        </div>
+        {onDetails && (
+          <button
+            onClick={() => onDetails(appointment)}
+            style={{
+              padding: '12px 16px',
+              borderRadius: '8px',
+              border: '1px solid var(--primary)',
+              background: 'transparent',
+              color: 'var(--primary)',
+              fontWeight: 600,
+              cursor: 'pointer',
             }}
           >
-             {isPickup ? 'Récupérer le véhicule' : 'Livrer au client'}
-          </Button>
-        </div>
-      )}
+            Détails
+          </button>
+        )}
+      </div>
     </Card>
   );
 }

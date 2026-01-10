@@ -1,17 +1,34 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Settings, UserPlus } from 'lucide-react';
+import { Settings, UserPlus } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { STATUS_COLORS } from '../../lib/constants';
+import { CRM_STAGES } from '../../lib/constants';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import ClientForm from './ClientForm';
 import Button from '../../components/ui/Button';
+import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
+import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
+
+const DEFAULT_COLUMNS = [
+  { id: 'reception', slug: CRM_STAGES.NEW_LEAD, label: 'Réception', position: 1 },
+  { id: 'missions', slug: CRM_STAGES.APPOINTMENT, label: 'Missions', position: 2 },
+  { id: 'mission_fini', slug: CRM_STAGES.DONE, label: 'Mission finie', position: 3 },
+  { id: 'atelier', slug: 'atelier', label: 'Atelier', position: 4 },
+  { id: 'encaissements', slug: 'encaissements', label: 'Encaissements', position: 5 },
+  { id: 'cloture', slug: CRM_STAGES.SATISFACTION, label: 'Clôture', position: 6 },
+  { id: 'annuler', slug: 'annuler', label: 'Annulé', position: 7 },
+];
 
 export default function PipelineBoard() {
   const [columns, setColumns] = useState([]);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsLead, setDetailsLead] = useState(null);
+  const [leadAppointments, setLeadAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
   
   // Modale
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,6 +36,7 @@ export default function PipelineBoard() {
 
   useEffect(() => {
     fetchData();
+    fetchAdminStatus();
   }, []);
 
   async function fetchData() {
@@ -26,13 +44,36 @@ export default function PipelineBoard() {
     try {
       const { data: colsData } = await supabase.from('crm_columns').select('*').order('position', { ascending: true });
       const { data: leadsData } = await supabase.from('clients').select('*').neq('is_archived', true).order('created_at', { ascending: false });
-      setColumns(colsData || []);
+      const orderedColumns = buildColumns(colsData || [], leadsData || []);
+      setColumns(orderedColumns);
       setLeads(leadsData || []);
     } catch (error) {
       console.error("Erreur chargement CRM:", error);
     } finally {
       setLoading(false);
     }
+  }
+
+  async function fetchAdminStatus() {
+    const admin = await isAdminRole();
+    setIsAdmin(admin);
+  }
+
+  async function loadLeadAppointments(clientId) {
+    setAppointmentsLoading(true);
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('id, scheduled_at, service_type, status')
+      .eq('client_id', clientId)
+      .order('scheduled_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      setLeadAppointments([]);
+    } else {
+      setLeadAppointments(data || []);
+    }
+    setAppointmentsLoading(false);
   }
 
   // --- HELPER PROGRESSION ---
@@ -54,6 +95,23 @@ export default function PipelineBoard() {
   const handleCreateLead = () => {
     setSelectedLead(null); // NULL = Mode Création
     setIsModalOpen(true);
+  };
+
+  const handleOpenDetails = (lead) => {
+    setDetailsLead(lead);
+    setDetailsOpen(true);
+    loadLeadAppointments(lead.id);
+  };
+
+  const handleDeleteAppointment = async (appointmentId) => {
+    if (!confirm('Supprimer ce rendez-vous ?')) return;
+    try {
+      await deleteAppointmentById(appointmentId);
+      setLeadAppointments((prev) => prev.filter((apt) => apt.id !== appointmentId));
+    } catch (deleteError) {
+      console.error(deleteError);
+      alert('Suppression impossible.');
+    }
   };
 
   async function updateLead(leadData, silent = false) {
@@ -204,11 +262,11 @@ export default function PipelineBoard() {
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {leads.filter(lead => lead.crm_stage === col.slug).map(lead => {
+              {leads.filter(lead => (lead.crm_stage || CRM_STAGES.NEW_LEAD) === col.slug).map(lead => {
                   const stats = calculateGlobalProgress(lead.checklists);
                   return (
                     <div key={lead.id} draggable onDragStart={(e) => handleDragStart(e, lead)} style={{ cursor: 'grab' }}>
-                      <Card onClick={() => { setSelectedLead(lead); setIsModalOpen(true); }} className="hover:shadow-md transition-shadow">
+                      <Card onClick={() => handleOpenDetails(lead)} className="hover:shadow-md transition-shadow">
                         <div style={{ fontWeight: 600, marginBottom: '4px' }}>{lead.full_name}</div>
                         {/* Sécurité : Affichage ID avec fallback */}
                         <div style={{ fontSize: '10px', color: '#9CA3AF', marginBottom: '4px' }}>N° {String(lead.tracking_id || 0).padStart(5, '0')}</div>
@@ -241,6 +299,103 @@ export default function PipelineBoard() {
           onArchive={archiveLead}  // <--- AJOUTER CETTE LIGNE
         />
       </Modal>
+
+      <AdminDetailsModal
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        title="Détails client"
+        sections={[
+          { label: 'Nom', value: detailsLead?.full_name },
+          { label: 'Téléphone', value: detailsLead?.phone },
+          { label: 'Email', value: detailsLead?.email },
+          { label: 'Adresse', value: detailsLead?.address },
+          { label: 'Stage CRM', value: detailsLead?.crm_stage || CRM_STAGES.NEW_LEAD },
+          { label: 'Notes', value: detailsLead?.notes },
+          { label: 'Véhicule', value: detailsLead?.vehicle_info },
+          {
+            label: 'Rendez-vous',
+            value: appointmentsLoading
+              ? 'Chargement...'
+              : leadAppointments.length === 0
+                ? '—'
+                : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {leadAppointments.map((apt) => (
+                      <div key={apt.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{formatDateTime(apt.scheduled_at)}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--gray)' }}>
+                            {apt.service_type} · {apt.status}
+                          </div>
+                        </div>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDeleteAppointment(apt.id)}
+                            style={{
+                              border: '1px solid #ef4444',
+                              color: '#ef4444',
+                              background: 'transparent',
+                              borderRadius: '6px',
+                              padding: '6px 10px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Supprimer
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ),
+          },
+        ]}
+        actions={[
+          {
+            label: 'Modifier',
+            onClick: () => {
+              setSelectedLead(detailsLead);
+              setIsModalOpen(true);
+            },
+            variant: 'primary',
+          },
+        ]}
+      />
     </div>
   );
+}
+
+function buildColumns(columns, leads) {
+  const baseColumns = columns.length > 0 ? [...columns] : [...DEFAULT_COLUMNS];
+  const existingSlugs = new Set(baseColumns.map((col) => col.slug));
+
+  (leads || []).forEach((lead) => {
+    const slug = lead.crm_stage || CRM_STAGES.NEW_LEAD;
+    if (!existingSlugs.has(slug)) {
+      existingSlugs.add(slug);
+      baseColumns.push({
+        id: slug,
+        slug,
+        label: formatStageLabel(slug),
+        position: baseColumns.length + 1,
+      });
+    }
+  });
+
+  return baseColumns.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+}
+
+function formatStageLabel(slug) {
+  return slug
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatDateTime(value) {
+  return value
+    ? new Date(value).toLocaleString('fr-BE', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : '—';
 }

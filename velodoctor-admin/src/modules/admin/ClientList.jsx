@@ -2,14 +2,22 @@ import { useEffect, useState } from 'react';
 import { Users, Phone, Mail, MapPin, Search } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import Card from '../../components/ui/Card';
+import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
+import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
 
 export default function ClientList() {
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [clientAppointments, setClientAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     fetchClients();
+    fetchAdminStatus();
   }, []);
 
   async function fetchClients() {
@@ -27,6 +35,80 @@ export default function ClientList() {
       setLoading(false);
     }
   }
+
+  async function fetchAdminStatus() {
+    const admin = await isAdminRole();
+    setIsAdmin(admin);
+  }
+
+  async function loadClientAppointments(clientId) {
+    setAppointmentsLoading(true);
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('id, scheduled_at, service_type, status')
+      .eq('client_id', clientId)
+      .order('scheduled_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      setClientAppointments([]);
+    } else {
+      setClientAppointments(data || []);
+    }
+    setAppointmentsLoading(false);
+  }
+
+  const handleOpenDetails = (client) => {
+    setSelectedClient(client);
+    setDetailsOpen(true);
+    loadClientAppointments(client.id);
+  };
+
+  const handleDeleteAppointment = async (appointmentId) => {
+    if (!confirm('Supprimer ce rendez-vous ?')) return;
+    try {
+      await deleteAppointmentById(appointmentId);
+      setClientAppointments((prev) => prev.filter((apt) => apt.id !== appointmentId));
+    } catch (deleteError) {
+      console.error(deleteError);
+      alert('Suppression impossible.');
+    }
+  };
+
+  const appointmentList = appointmentsLoading
+    ? 'Chargement...'
+    : clientAppointments.length === 0
+      ? '—'
+      : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {clientAppointments.map((apt) => (
+            <div key={apt.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+              <div>
+                <div style={{ fontWeight: 600 }}>{formatDateTime(apt.scheduled_at)}</div>
+                <div style={{ fontSize: '12px', color: 'var(--gray)' }}>
+                  {apt.service_type} · {apt.status}
+                </div>
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={() => handleDeleteAppointment(apt.id)}
+                  style={{
+                    border: '1px solid #ef4444',
+                    color: '#ef4444',
+                    background: 'transparent',
+                    borderRadius: '6px',
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                  }}
+                >
+                  Supprimer
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      );
 
   // Filtrage dynamique selon la recherche
   const filteredClients = clients.filter(client => 
@@ -58,7 +140,7 @@ export default function ClientList() {
             <p>Aucun client trouvé.</p>
           ) : (
             filteredClients.map((client) => (
-              <Card key={client.id}>
+              <Card key={client.id} onClick={() => handleOpenDetails(client)}>
                 {/* Nom */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
                   <div style={{ 
@@ -106,6 +188,32 @@ export default function ClientList() {
           )}
         </div>
       )}
+
+      <AdminDetailsModal
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        title="Détails client"
+        sections={[
+          { label: 'Nom', value: selectedClient?.full_name },
+          { label: 'Téléphone', value: selectedClient?.phone },
+          { label: 'Email', value: selectedClient?.email },
+          { label: 'Adresse', value: selectedClient?.address },
+          { label: 'Source', value: selectedClient?.source },
+          { label: 'Stage CRM', value: selectedClient?.crm_stage },
+          { label: 'Notes', value: selectedClient?.notes },
+          { label: 'Véhicule', value: selectedClient?.vehicle_info },
+          { label: 'Rendez-vous', value: appointmentList },
+        ]}
+      />
     </div>
   );
+}
+
+function formatDateTime(value) {
+  return value
+    ? new Date(value).toLocaleString('fr-BE', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : '—';
 }

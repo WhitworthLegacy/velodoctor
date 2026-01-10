@@ -2,14 +2,20 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import AppointmentCard from './AppointmentCard';
 import { Automation } from '../../lib/automation';
+import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
+import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
 
 export default function LogisticsDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     fetchAppointments();
+    fetchAdminStatus();
   }, []);
 
   async function fetchAppointments() {
@@ -19,7 +25,7 @@ export default function LogisticsDashboard() {
         .from('appointments')
         .select(`
           *,
-          clients (full_name, address, phone),
+          clients (id, full_name, address, phone, email),
           vehicles (brand, model, type)
         `)
         .order('scheduled_at', { ascending: true });
@@ -32,6 +38,11 @@ export default function LogisticsDashboard() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function fetchAdminStatus() {
+    const admin = await isAdminRole();
+    setIsAdmin(admin);
   }
 
   // ✨ NOUVELLE FONCTION : Met à jour le statut dans la base de données
@@ -51,6 +62,46 @@ export default function LogisticsDashboard() {
         if (!error) fetchAppointments();
       }
   }
+
+  const handleOpenDetails = (appointment) => {
+    setSelectedAppointment(appointment);
+    setDetailsOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedAppointment) return;
+    if (!confirm('Supprimer ce rendez-vous ?')) return;
+    try {
+      await deleteAppointmentById(selectedAppointment.id);
+      setDetailsOpen(false);
+      setSelectedAppointment(null);
+      fetchAppointments();
+    } catch (deleteError) {
+      console.error(deleteError);
+      alert('Suppression impossible.');
+    }
+  };
+
+  const formatDateTime = (value) =>
+    value
+      ? new Date(value).toLocaleString('fr-BE', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        })
+      : '—';
+
+  const appointmentSections = selectedAppointment
+    ? [
+        { label: 'Client', value: selectedAppointment.clients?.full_name || 'Client inconnu' },
+        { label: 'Email', value: selectedAppointment.clients?.email },
+        { label: 'Téléphone', value: selectedAppointment.clients?.phone },
+        { label: 'Adresse', value: selectedAppointment.address || selectedAppointment.clients?.address },
+        { label: 'Service', value: selectedAppointment.service_type },
+        { label: 'Date', value: formatDateTime(selectedAppointment.scheduled_at) },
+        { label: 'Statut', value: selectedAppointment.status },
+        ...(selectedAppointment.message ? [{ label: 'Message', value: selectedAppointment.message }] : []),
+      ]
+    : [];
 
   return (
     <div className="container">
@@ -77,11 +128,21 @@ export default function LogisticsDashboard() {
                 key={apt.id} 
                 appointment={apt} 
                 onUpdate={handleStatusUpdate} /* 👈 On passe la fonction à la carte */
+                onDetails={handleOpenDetails}
               />
             ))
           )}
         </div>
       )}
+
+      <AdminDetailsModal
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        title="Détails du rendez-vous"
+        sections={appointmentSections}
+        isAdmin={isAdmin}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }

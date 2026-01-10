@@ -7,6 +7,8 @@ import getDay from 'date-fns/getDay';
 import fr from 'date-fns/locale/fr';
 import 'react-big-calendar/lib/css/react-big-calendar.css'; // Le style du calendrier
 import { supabase } from '../../lib/supabase';
+import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
+import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
 
 // Configuration de la langue française pour le calendrier
 const locales = {
@@ -24,9 +26,13 @@ const localizer = dateFnsLocalizer({
 export default function PlanningDashboard() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     fetchData();
+    fetchAdminStatus();
   }, []);
 
   async function fetchData() {
@@ -35,7 +41,7 @@ export default function PlanningDashboard() {
     // 1. Récupérer les RDV Logistiques (Transport)
     const { data: appointments } = await supabase
       .from('appointments')
-      .select(`*, clients(full_name), vehicles(brand, model)`);
+      .select(`*, clients(id, full_name, email, phone, address), vehicles(brand, model)`);
 
     // 2. Récupérer les Interventions (Atelier)
     // Note : Pour l'instant on utilise 'created_at' comme date, 
@@ -51,7 +57,8 @@ export default function PlanningDashboard() {
       start: new Date(apt.scheduled_at),
       end: new Date(new Date(apt.scheduled_at).getTime() + 60 * 60 * 1000), // Durée fictive 1h
       type: 'logistics',
-      status: apt.status
+      status: apt.status,
+      appointment: apt,
     }));
 
     const workshopEvents = (interventions || []).map(int => ({
@@ -60,11 +67,17 @@ export default function PlanningDashboard() {
       start: new Date(int.created_at), // Date d'entrée atelier
       end: new Date(new Date(int.created_at).getTime() + 2 * 60 * 60 * 1000), // Durée fictive 2h
       type: 'workshop',
-      status: int.status
+      status: int.status,
+      intervention: int,
     }));
 
     setEvents([...logisticsEvents, ...workshopEvents]);
     setLoading(false);
+  }
+
+  async function fetchAdminStatus() {
+    const admin = await isAdminRole();
+    setIsAdmin(admin);
   }
 
   // Fonction pour donner une couleur selon le type d'événement
@@ -109,10 +122,74 @@ export default function PlanningDashboard() {
               agenda: "Liste"
             }}
             eventPropGetter={eventStyleGetter}
-            onSelectEvent={event => alert(event.title)} // Simple alerte au clic pour l'instant
+            onSelectEvent={(event) => {
+              setSelectedEvent(event);
+              setDetailsOpen(true);
+            }}
           />
         </div>
       )}
+
+      <AdminDetailsModal
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        title={selectedEvent?.type === 'workshop' ? 'Détails atelier' : 'Détails rendez-vous'}
+        sections={getEventSections(selectedEvent)}
+        isAdmin={isAdmin && selectedEvent?.type === 'logistics'}
+        onDelete={selectedEvent?.type === 'logistics' ? () => handleDeleteAppointment(selectedEvent) : null}
+        deleteLabel="Supprimer le RDV"
+      />
     </div>
   );
+}
+
+function getEventSections(event) {
+  if (!event) return [];
+
+  if (event.type === 'logistics') {
+    const apt = event.appointment || {};
+    const client = apt.clients || {};
+    return [
+      { label: 'Client', value: client.full_name || 'Client inconnu' },
+      { label: 'Email', value: client.email },
+      { label: 'Téléphone', value: client.phone },
+      { label: 'Adresse', value: apt.address || client.address },
+      { label: 'Service', value: apt.service_type },
+      { label: 'Date', value: formatDate(apt.scheduled_at) },
+      { label: 'Statut', value: apt.status },
+      ...(apt.message ? [{ label: 'Message', value: apt.message }] : []),
+    ];
+  }
+
+  const intervention = event.intervention || {};
+  const vehicle = intervention.vehicles || {};
+  const client = vehicle.clients || {};
+  return [
+    { label: 'Client', value: client.full_name || 'Client inconnu' },
+    { label: 'Véhicule', value: vehicle.brand ? `${vehicle.brand} ${vehicle.model || ''}`.trim() : '—' },
+    { label: 'Statut', value: intervention.status },
+    { label: 'Date', value: formatDate(intervention.created_at) },
+  ];
+}
+
+function formatDate(value) {
+  return value
+    ? new Date(value).toLocaleString('fr-BE', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : '—';
+}
+
+async function handleDeleteAppointment(event) {
+  const apt = event?.appointment;
+  if (!apt?.id) return;
+  if (!confirm('Supprimer ce rendez-vous ?')) return;
+  try {
+    await deleteAppointmentById(apt.id);
+    window.location.reload();
+  } catch (error) {
+    console.error(error);
+    alert('Suppression impossible.');
+  }
 }
