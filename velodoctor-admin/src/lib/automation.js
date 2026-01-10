@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
 import { CRM_STAGES } from './constants';
+import { apiFetch } from './apiClient';
 
 // ⚠️ COLLE ICI L'URL DE TA WEB APP GOOGLE (Obtenue après déploiement)
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzfbv3XH8Awpvk0xRRtwnQiwnmzK9TW11ssBDrD3jIr7piI58DaKl6xc8pB1nFUeuFh/exec";
@@ -13,25 +13,27 @@ export const Automation = {
   async completeJob(table, id, client_id) {
     console.log(`🤖 Automation: Finishing job ${id}...`);
 
-    // 1. Mise à jour de la mission (Status = Done)
-    const { error: jobError } = await supabase
-      .from(table)
-      .update({ status: 'done' }) // ou 'ready' pour atelier, à adapter selon ta logique
-      .eq('id', id);
-
-    if (jobError) {
+    try {
+      if (table === 'appointments') {
+        await apiFetch(`/api/admin/appointments/${id}/complete`, { method: 'POST' });
+      } else {
+        await apiFetch(`/api/admin/${table}/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'done' }),
+        });
+      }
+    } catch (jobError) {
       console.error("Erreur MAJ Job:", jobError);
       return false;
     }
 
     // 2. Mise à jour CRM & Envoi Mail
     if (client_id) {
-      // A. On passe le client en "Satisfaction" dans le CRM
-      await supabase
-        .from('clients')
-        .update({ crm_stage: CRM_STAGES.SATISFACTION })
-        .eq('id', client_id);
-      
+      await apiFetch(`/api/admin/clients/${client_id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ crm_stage: CRM_STAGES.SATISFACTION }),
+      });
+
       // B. On appelle Google Script pour le mail
       await this.triggerGoogleMail(client_id);
     }
@@ -44,12 +46,8 @@ export const Automation = {
    */
   async triggerGoogleMail(client_id) {
     try {
-      // On récupère les infos fraîches du client
-      const { data: client } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', client_id)
-        .single();
+      const payload = await apiFetch(`/api/admin/clients/${client_id}`);
+      const client = payload.client;
 
       if (!client || !client.email) {
         alert("⚠️ Pas d'email client, envoi annulé.");

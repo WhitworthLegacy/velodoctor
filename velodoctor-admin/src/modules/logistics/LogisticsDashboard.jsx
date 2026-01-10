@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import AppointmentCard from './AppointmentCard';
 import { Automation } from '../../lib/automation';
 import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
+import { apiFetch } from '../../lib/apiClient';
 
 export default function LogisticsDashboard() {
   const [appointments, setAppointments] = useState([]);
@@ -21,17 +21,8 @@ export default function LogisticsDashboard() {
   async function fetchAppointments() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('appointments')
-        .select(`
-          *,
-          clients (id, full_name, address, phone, email),
-          vehicles (brand, model, type)
-        `)
-        .order('scheduled_at', { ascending: true });
-
-      if (error) throw error;
-      setAppointments(data);
+      const payload = await apiFetch('/api/admin/appointments');
+      setAppointments(payload.appointments || []);
     } catch (err) {
       console.error("Erreur de chargement:", err);
       setError("Impossible de charger les rendez-vous.");
@@ -55,11 +46,16 @@ export default function LogisticsDashboard() {
         }
       } else {
         // CAS CLASSIQUE (ex: En transit)
-        const { error } = await supabase
-          .from('appointments')
-          .update({ status: newStatus })
-          .eq('id', id);
-        if (!error) fetchAppointments();
+        try {
+          await apiFetch(`/api/admin/appointments/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: newStatus }),
+          });
+          fetchAppointments();
+        } catch (updateError) {
+          console.error(updateError);
+          alert("Impossible de mettre à jour le statut.");
+        }
       }
   }
 

@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Users, Phone, Mail, MapPin, Search } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import Card from '../../components/ui/Card';
 import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
+import { apiFetch } from '../../lib/apiClient';
 
 export default function ClientList() {
   const [clients, setClients] = useState([]);
@@ -22,13 +22,8 @@ export default function ClientList() {
 
   async function fetchClients() {
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('full_name', { ascending: true }); // Ordre alphabétique
-
-      if (error) throw error;
-      setClients(data);
+      const payload = await apiFetch('/api/admin/clients');
+      setClients(payload.clients || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -43,17 +38,12 @@ export default function ClientList() {
 
   async function loadClientAppointments(clientId) {
     setAppointmentsLoading(true);
-    const { data, error } = await supabase
-      .from('appointments')
-      .select('id, scheduled_at, service_type, status')
-      .eq('client_id', clientId)
-      .order('scheduled_at', { ascending: false });
-
-    if (error) {
+    try {
+      const payload = await apiFetch(`/api/admin/clients/${clientId}/appointments`);
+      setClientAppointments(payload.appointments || []);
+    } catch (error) {
       console.error(error);
       setClientAppointments([]);
-    } else {
-      setClientAppointments(data || []);
     }
     setAppointmentsLoading(false);
   }

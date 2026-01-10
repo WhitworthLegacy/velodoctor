@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Settings, UserPlus } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { CRM_STAGES } from '../../lib/constants';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
@@ -8,6 +7,7 @@ import ClientForm from './ClientForm';
 import Button from '../../components/ui/Button';
 import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
+import { apiFetch } from '../../lib/apiClient';
 
 const DEFAULT_COLUMNS = [
   { id: 'reception', slug: CRM_STAGES.NEW_LEAD, label: 'Réception', position: 1 },
@@ -42,11 +42,13 @@ export default function PipelineBoard() {
   async function fetchData() {
     setLoading(true);
     try {
-      const { data: colsData } = await supabase.from('crm_columns').select('*').order('position', { ascending: true });
-      const { data: leadsData } = await supabase.from('clients').select('*').neq('is_archived', true).order('created_at', { ascending: false });
-      const orderedColumns = buildColumns(colsData || [], leadsData || []);
+      const columnsPayload = await apiFetch('/api/admin/crm-columns');
+      const clientsPayload = await apiFetch('/api/admin/clients');
+      const colsData = columnsPayload.columns || [];
+      const leadsData = clientsPayload.clients || [];
+      const orderedColumns = buildColumns(colsData, leadsData);
       setColumns(orderedColumns);
-      setLeads(leadsData || []);
+      setLeads(leadsData);
     } catch (error) {
       console.error("Erreur chargement CRM:", error);
     } finally {
@@ -61,17 +63,12 @@ export default function PipelineBoard() {
 
   async function loadLeadAppointments(clientId) {
     setAppointmentsLoading(true);
-    const { data, error } = await supabase
-      .from('appointments')
-      .select('id, scheduled_at, service_type, status')
-      .eq('client_id', clientId)
-      .order('scheduled_at', { ascending: false });
-
-    if (error) {
+    try {
+      const payload = await apiFetch(`/api/admin/clients/${clientId}/appointments`);
+      setLeadAppointments(payload.appointments || []);
+    } catch (error) {
       console.error(error);
       setLeadAppointments([]);
-    } else {
-      setLeadAppointments(data || []);
     }
     setAppointmentsLoading(false);
   }
@@ -122,26 +119,28 @@ export default function PipelineBoard() {
       // 1. MISE À JOUR (Client existant)
       if (leadData.id) {
         setLeads(prev => prev.map(l => l.id === leadData.id ? leadData : l));
-        
-        const { error } = await supabase.from('clients').update({ 
-          crm_stage: leadData.crm_stage,
-          full_name: leadData.full_name,
-          phone: leadData.phone,
-          email: leadData.email,
-          address: leadData.address,
-          vehicle_info: leadData.vehicle_info,
-          notes: leadData.notes,
-          checklists: leadData.checklists
-        }).eq('id', leadData.id);
 
-        if (error) throw error;
+        await apiFetch(`/api/admin/clients/${leadData.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            crm_stage: leadData.crm_stage,
+            full_name: leadData.full_name,
+            phone: leadData.phone,
+            email: leadData.email,
+            address: leadData.address,
+            vehicle_info: leadData.vehicle_info,
+            notes: leadData.notes,
+            checklists: leadData.checklists,
+          }),
+        });
       } 
       // 2. CRÉATION (Nouveau client)
       else {
         // On nettoie l'objet avant l'envoi
         const { id, ...newClientData } = leadData;
-        
-        const { data, error } = await supabase.from('clients').insert([{
+        const payload = await apiFetch('/api/admin/clients', {
+          method: 'POST',
+          body: JSON.stringify({
             full_name: newClientData.full_name || 'Nouveau Client',
             phone: newClientData.phone,
             email: newClientData.email,
@@ -149,13 +148,12 @@ export default function PipelineBoard() {
             vehicle_info: newClientData.vehicle_info,
             crm_stage: newClientData.crm_stage || 'reception',
             notes: newClientData.notes,
-            checklists: newClientData.checklists || {} // Important: ne jamais envoyer null
-        }]).select();
+            checklists: newClientData.checklists || {},
+          }),
+        });
 
-        if (error) throw error;
-
-        if (data) {
-          setLeads(prev => [data[0], ...prev]);
+        if (payload?.client) {
+          setLeads(prev => [payload.client, ...prev]);
         }
       }
     } catch (err) {
@@ -172,12 +170,10 @@ export default function PipelineBoard() {
 
     try {
       // 2. Update Supabase
-      const { error } = await supabase
-        .from('clients')
-        .update({ is_archived: true })
-        .eq('id', leadToArchive.id);
-
-      if (error) throw error;
+      await apiFetch(`/api/admin/clients/${leadToArchive.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_archived: true }),
+      });
       
       // Optionnel : Petit feedback console
       console.log("Client archivé avec succès");
@@ -212,7 +208,10 @@ export default function PipelineBoard() {
         setLeads(prev => prev.map(l => l.id === currentLead.id ? updatedLead : l));
         
         // Update DB
-        await supabase.from('clients').update({ crm_stage: targetSlug }).eq('id', currentLead.id);
+        await apiFetch(`/api/admin/clients/${currentLead.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ crm_stage: targetSlug }),
+        });
       }
     } catch (err) { console.error(err); }
   };

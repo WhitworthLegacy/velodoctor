@@ -6,9 +6,9 @@ import startOfWeek from 'date-fns/startOfWeek';
 import getDay from 'date-fns/getDay';
 import fr from 'date-fns/locale/fr';
 import 'react-big-calendar/lib/css/react-big-calendar.css'; // Le style du calendrier
-import { supabase } from '../../lib/supabase';
 import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
+import { apiFetch } from '../../lib/apiClient';
 
 // Configuration de la langue française pour le calendrier
 const locales = {
@@ -39,16 +39,14 @@ export default function PlanningDashboard() {
     setLoading(true);
     
     // 1. Récupérer les RDV Logistiques (Transport)
-    const { data: appointments } = await supabase
-      .from('appointments')
-      .select(`*, clients(id, full_name, email, phone, address), vehicles(brand, model)`);
+    const appointmentsPayload = await apiFetch('/api/admin/appointments');
+    const appointments = appointmentsPayload.appointments || [];
 
     // 2. Récupérer les Interventions (Atelier)
     // Note : Pour l'instant on utilise 'created_at' comme date, 
     // idéalement on ajoutera une colonne 'planned_at' plus tard.
-    const { data: interventions } = await supabase
-      .from('interventions')
-      .select(`*, vehicles(brand, model, clients(full_name))`);
+    const interventionsPayload = await apiFetch('/api/admin/interventions');
+    const interventions = interventionsPayload.interventions || [];
 
     // 3. Fusionner et formater pour le calendrier
     const logisticsEvents = (appointments || []).map(apt => ({
@@ -95,6 +93,21 @@ export default function PlanningDashboard() {
         display: 'block'
       }
     };
+  };
+
+  const handleDeleteAppointment = async (event) => {
+    const apt = event?.appointment;
+    if (!apt?.id) return;
+    if (!confirm('Supprimer ce rendez-vous ?')) return;
+    try {
+      await deleteAppointmentById(apt.id);
+      setDetailsOpen(false);
+      setSelectedEvent(null);
+      await fetchData();
+    } catch (error) {
+      console.error(error);
+      alert('Suppression impossible.');
+    }
   };
 
   return (
@@ -179,17 +192,4 @@ function formatDate(value) {
         timeStyle: 'short',
       })
     : '—';
-}
-
-async function handleDeleteAppointment(event) {
-  const apt = event?.appointment;
-  if (!apt?.id) return;
-  if (!confirm('Supprimer ce rendez-vous ?')) return;
-  try {
-    await deleteAppointmentById(apt.id);
-    window.location.reload();
-  } catch (error) {
-    console.error(error);
-    alert('Suppression impossible.');
-  }
 }
