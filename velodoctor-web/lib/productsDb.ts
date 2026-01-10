@@ -40,6 +40,44 @@ export async function fetchPublishedProducts(): Promise<DbProduct[]> {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-
   return (data || []) as DbProduct[];
+}
+
+/** ✅ NEW: fetch one product by slug (published only by default) */
+export async function getDbProductBySlug(
+  slug: string,
+  opts?: { allowUnpublished?: boolean }
+): Promise<DbProduct | null> {
+  const supabase = getSupabaseServerClient();
+
+  let query = supabase
+    .from("products")
+    .select(
+      `
+      id,
+      slug,
+      title,
+      description,
+      cover_image_url,
+      is_published,
+      seo_title,
+      seo_description,
+      inventory_items:inventory_item_id (
+        price_sell,
+        quantity
+      )
+    `
+    )
+    .eq("slug", slug)
+    .limit(1)
+    .maybeSingle();
+
+  if (!opts?.allowUnpublished) {
+    query = query.eq("is_published", true);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data || null) as DbProduct | null;
 }
