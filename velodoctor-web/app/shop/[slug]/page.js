@@ -14,8 +14,8 @@ function toUiFromDb(db) {
     title: db.title,
     description: db.description,
     cover_image_url: db.cover_image_url,
-    price: db._inv?.price_sell ?? null,
-    inStock: (db._inv?.quantity ?? 0) > 0,
+    price: db.inventory_items?.price_sell ?? null,
+    inStock: (db.inventory_items?.quantity ?? 0) > 0,
     features: [],
     category: "Pièce / Accessoire",
   };

@@ -183,25 +183,23 @@ export default function Home() {
             <div className="grid sm:grid-cols-2 gap-6">
               <div className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
+                
                   <div>
                     <p className="font-semibold text-vdDark">
                       Diagnostic : <span className="line-through">45€</span> → <span className="font-bold">0€ si devis accepté</span>
                     </p>
                     <p className="text-sm text-gray-600">Sinon : diagnostic facturé 45€</p>
                   </div>
-                </div>
+                
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
+                
                   <div>
                     <p className="font-semibold text-vdDark">Devis sous 72h</p>
                     <p className="text-sm text-gray-600">Après le diagnostic</p>
                   </div>
-                </div>
+                
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-vdPrimary flex-shrink-0 mt-0.5" />
