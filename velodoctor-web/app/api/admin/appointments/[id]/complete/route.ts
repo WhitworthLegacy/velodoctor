@@ -8,14 +8,13 @@ export async function OPTIONS() {
 
 export async function POST(
   request: NextRequest,
-  ctx: { params: Promise<{ id: string }> }
+  ctx: { params: { id: string } }
 ) {
-  const { id } = await ctx.params;
+  const { id } = ctx.params;
 
   const auth = await requireStaff(request);
   if ("error" in auth) {
-    // auth.error est déjà une Response/NextResponse -> on applique CORS et on return
-    return applyCors(auth.error);
+    return auth.error;
   }
 
   try {
