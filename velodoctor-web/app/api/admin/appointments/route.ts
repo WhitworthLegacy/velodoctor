@@ -1,7 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireStaff } from '@/lib/adminAuth';
+import { applyCors } from '@/lib/cors';
 
-export async function GET(request: Request) {
+export async function OPTIONS() {
+  return applyCors(new NextResponse(null, { status: 204 }));
+}
+
+export async function GET(request: NextRequest) {
   const auth = await requireStaff(request);
   if ('error' in auth) {
     return auth.error;
@@ -23,8 +28,8 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error('[admin] appointments list failed:', error);
-    return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });
+    return applyCors(NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 }));
   }
 
-  return NextResponse.json({ appointments: data || [] });
+  return applyCors(NextResponse.json({ appointments: data || [] }));
 }

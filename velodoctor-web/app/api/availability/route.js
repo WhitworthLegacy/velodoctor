@@ -199,7 +199,7 @@ export async function GET(request) {
       .select('id, scheduled_at, duration_minutes, status, service_type')
       .gte('scheduled_at', dayStart.toISOString())
       .lte('scheduled_at', dayEnd.toISOString())
-      .in('status', ['confirmed', 'active']);
+      .in('status', ['pending', 'confirmed', 'in_transit']);
 
     if (normalizedServiceType) {
       const serviceTypeOptions = new Set([normalizedServiceType]);

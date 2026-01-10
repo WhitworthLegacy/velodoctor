@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './lib/supabase';
 import { ROLES } from './lib/constants';
+import { fetchUserRole } from './lib/adminApi';
 import InventoryDashboard from './modules/inventory/InventoryDashboard'; // AJOUT
 
 // Layouts & Pages
@@ -30,7 +31,7 @@ function App() {
       setSession(session);
       
       if (session) {
-        await fetchUserRole(session.user.id);
+        await resolveUserRole();
       } else {
         setLoading(false);
       }
@@ -42,7 +43,7 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session) {
-        await fetchUserRole(session.user.id);
+        await resolveUserRole();
       }
       setLoading(false);
     });
@@ -52,15 +53,10 @@ function App() {
 
   // Fonction pour récupérer le rôle dans la table 'profiles' (si elle existe)
   // Sinon on peut définir des rôles basés sur l'email pour le MVP
-  async function fetchUserRole(userId) {
+  async function resolveUserRole() {
     try {
-      // Option A : Si tu as une table profiles
-      // const { data } = await supabase.from('profiles').select('role').eq('id', userId).single();
-      // setUserRole(data?.role || ROLES.ADMIN);
-      
-      // Option B (MVP Rapide) : On donne Admin par défaut, ou on checke l'email
-      // Tu pourras complexifier ça plus tard
-      setUserRole(ROLES.ADMIN); 
+      const role = await fetchUserRole();
+      setUserRole(role || null);
     } catch (e) {
       console.error(e);
     } finally {

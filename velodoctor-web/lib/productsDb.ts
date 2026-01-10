@@ -15,8 +15,7 @@ export type DbProduct = {
   seo_title: string | null;
   seo_description: string | null;
 
-  // Supabase peut renvoyer objet ou array
-  inventory_items: InventoryRow | InventoryRow[] | null;
+  inventory_items: InventoryRow | null;
 };
 
 const PRODUCT_SELECT = `
@@ -34,11 +33,6 @@ const PRODUCT_SELECT = `
   )
 `;
 
-function normalizeInventory(inv: DbProduct["inventory_items"]): InventoryRow | null {
-  if (!inv) return null;
-  return Array.isArray(inv) ? (inv[0] ?? null) : inv;
-}
-
 export async function fetchPublishedProducts(): Promise<(DbProduct & { _inv: InventoryRow | null })[]> {
   const supabase = getSupabaseServerClient();
 
@@ -50,10 +44,13 @@ export async function fetchPublishedProducts(): Promise<(DbProduct & { _inv: Inv
 
   if (error) throw error;
 
-  return (data ?? []).map((p: any) => ({
-    ...(p as DbProduct),
-    _inv: normalizeInventory((p as DbProduct).inventory_items),
-  }));
+  return (data ?? []).map((product) => {
+    const typed = product as DbProduct;
+    return {
+      ...typed,
+      _inv: typed.inventory_items ?? null,
+    };
+  });
 }
 
 export async function getDbProductBySlug(
@@ -77,5 +74,5 @@ export async function getDbProductBySlug(
   if (!data) return null;
 
   const p = data as DbProduct;
-  return { ...p, _inv: normalizeInventory(p.inventory_items) };
+  return { ...p, _inv: p.inventory_items ?? null };
 }

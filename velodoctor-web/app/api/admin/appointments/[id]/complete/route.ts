@@ -1,34 +1,49 @@
-import { NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/adminAuth';
+import { NextRequest, NextResponse } from "next/server";
+import { requireStaff } from "@/lib/adminAuth";
+import { applyCors } from "@/lib/cors";
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
-  const auth = await requireStaff(request);
-  if ('error' in auth) {
-    return auth.error;
-  }
+export async function OPTIONS() {
+  return applyCors(new NextResponse(null, { status: 204 }));
+}
 
-  const { error: updateError, data: appointment } = await auth.supabase
-    .from('appointments')
-    .update({ status: 'done' })
-    .eq('id', params.id)
-    .select('client_id')
-    .single();
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
 
-  if (updateError) {
-    console.error('[admin] appointment completion failed:', updateError);
-    return NextResponse.json({ error: 'Failed to complete appointment' }, { status: 500 });
-  }
-
-  if (appointment?.client_id) {
-    const { error: clientError } = await auth.supabase
-      .from('clients')
-      .update({ crm_stage: 'cloture' })
-      .eq('id', appointment.client_id);
-
-    if (clientError) {
-      console.error('[admin] client stage update failed:', clientError);
+    const auth = await requireStaff(request);
+    if ("error" in auth) {
+      return auth.error;
     }
-  }
 
-  return NextResponse.json({ success: true });
+    const { data: appt, error: apptErr } = await auth.supabase
+      .from("appointments")
+      .update({ status: "done" })
+      .eq("id", id)
+      .select("id, client_id")
+      .single();
+
+    if (apptErr || !appt) {
+      console.error("[complete] appointment update error:", apptErr);
+      return applyCors(NextResponse.json({ error: "Failed to complete appointment" }, { status: 500 }));
+    }
+
+    if (appt.client_id) {
+      const { error: clientErr } = await auth.supabase
+        .from("clients")
+        .update({ crm_stage: "cloture" })
+        .eq("id", appt.client_id);
+
+      if (clientErr) {
+        console.error("[complete] client stage update error:", clientErr);
+      }
+    }
+
+    return applyCors(NextResponse.json({ success: true }));
+  } catch (e: any) {
+    console.error("[complete] error:", e);
+    return applyCors(NextResponse.json({ error: "Internal server error" }, { status: 500 }));
+  }
 }
