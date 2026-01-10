@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '@/lib/supabaseServer';
+import { NextResponse } from "next/server";
+import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
 const APPOINTMENT_DURATION_MINUTES = 90;
 
@@ -7,54 +7,46 @@ function normalizeServiceType(value) {
   if (!value) return null;
   const normalized = value
     .toString()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  if (normalized.includes('collecte')) {
-    return 'collecte';
-  }
-  if (normalized.includes('atelier') || normalized.includes('depot')) {
-    return 'depot_atelier';
-  }
+  if (normalized.includes("collecte")) return "collecte";
+  if (normalized.includes("atelier") || normalized.includes("depot")) return "depot_atelier";
 
   return null;
 }
 
 /**
- * Check if a time slot overlaps with existing appointments
+ * Check if a time slot overlaps with existing confirmed appointments.
+ * NOTE: your DB status values are: pending, confirmed, in_transit, done, cancelled
  */
-async function checkSlotAvailability(supabaseAdmin, scheduledAt) {
-  const slotStart = new Date(scheduledAt);
+async function checkSlotAvailability(supabase, scheduledAtIso) {
+  const slotStart = new Date(scheduledAtIso);
   const slotEnd = new Date(slotStart.getTime() + APPOINTMENT_DURATION_MINUTES * 60000);
 
-  // Get the date range to check (expand by 90 minutes before and after)
+  // Range extended by duration to catch overlaps
   const checkStart = new Date(slotStart.getTime() - APPOINTMENT_DURATION_MINUTES * 60000);
   const checkEnd = new Date(slotEnd.getTime() + APPOINTMENT_DURATION_MINUTES * 60000);
 
-  // Fetch appointments that could potentially overlap
-  const { data: appointments, error } = await supabaseAdmin
-    .from('appointments')
-    .select('scheduled_at, duration_minutes')
-    .gte('scheduled_at', checkStart.toISOString())
-    .lte('scheduled_at', checkEnd.toISOString())
-    .in('status', ['confirmed', 'active']);
+  const { data: appointments, error } = await supabase
+    .from("appointments")
+    .select("scheduled_at, duration_minutes, status")
+    .gte("scheduled_at", checkStart.toISOString())
+    .lte("scheduled_at", checkEnd.toISOString())
+    .in("status", ["confirmed", "in_transit"]); // statuses that should block the slot
 
   if (error) {
-    console.error('Error checking availability:', error);
-    throw new Error('Failed to check availability');
+    console.error("Error checking availability:", error);
+    throw new Error("Failed to check availability");
   }
 
-  // Check for overlaps
   for (const appointment of appointments || []) {
-    const appointmentStart = new Date(appointment.scheduled_at);
-    const appointmentEnd = new Date(appointmentStart.getTime() + appointment.duration_minutes * 60000);
+    const aStart = new Date(appointment.scheduled_at);
+    const aEnd = new Date(aStart.getTime() + (appointment.duration_minutes ?? APPOINTMENT_DURATION_MINUTES) * 60000);
 
-    const overlaps = slotStart < appointmentEnd && slotEnd > appointmentStart;
-
-    if (overlaps) {
-      return false;
-    }
+    const overlaps = slotStart < aEnd && slotEnd > aStart;
+    if (overlaps) return false;
   }
 
   return true;
@@ -62,8 +54,6 @@ async function checkSlotAvailability(supabaseAdmin, scheduledAt) {
 
 /**
  * POST /api/booking
- * Creates a new appointment in Supabase
- *
  * Body:
  * {
  *   serviceType: "Collecte" | "Dépôt atelier",
@@ -71,112 +61,143 @@ async function checkSlotAvailability(supabaseAdmin, scheduledAt) {
  *   customerName: string,
  *   customerEmail: string,
  *   customerPhone: string,
- *   customerAddress?: string, (required for "Collecte")
+ *   customerAddress?: string, (required for collecte)
  *   vehicleType?: string,
  *   message?: string
  * }
  */
 export async function POST(request) {
   try {
-    const supabaseAdmin = getSupabaseServerClient();
+    const supabase = getSupabaseServerClient();
     const body = await request.json();
+
     const normalizedServiceType = normalizeServiceType(body.serviceType);
 
     // Validate required fields
-    const requiredFields = ['serviceType', 'scheduledAt', 'customerName', 'customerEmail', 'customerPhone'];
+    const requiredFields = ["serviceType", "scheduledAt", "customerName", "customerEmail", "customerPhone"];
     for (const field of requiredFields) {
       if (!body[field]) {
-        return NextResponse.json(
-          { error: `Missing required field: ${field}` },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
       }
     }
 
-    // Validate service type
     if (!normalizedServiceType) {
       return NextResponse.json(
-        { error: 'Invalid service type. Must be "collecte" or "depot_atelier"' },
+        { error: 'Invalid service type. Must include "collecte" or "depot/atelier"' },
         { status: 400 }
       );
     }
 
-    // Validate address is provided for "Collecte"
-    if (normalizedServiceType === 'collecte' && !body.customerAddress) {
-      return NextResponse.json(
-        { error: 'Address is required for "Collecte" service' },
-        { status: 400 }
-      );
+    if (normalizedServiceType === "collecte" && !body.customerAddress) {
+      return NextResponse.json({ error: 'Address is required for "Collecte" service' }, { status: 400 });
     }
 
-    // Validate datetime format
     const scheduledAt = new Date(body.scheduledAt);
     if (isNaN(scheduledAt.getTime())) {
-      return NextResponse.json(
-        { error: 'Invalid datetime format for scheduledAt' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid datetime format for scheduledAt" }, { status: 400 });
     }
 
-    // Check if date is in the past
-    const now = new Date();
-    if (scheduledAt < now) {
-      return NextResponse.json(
-        { error: 'Cannot book appointments in the past' },
-        { status: 400 }
-      );
+    if (scheduledAt < new Date()) {
+      return NextResponse.json({ error: "Cannot book appointments in the past" }, { status: 400 });
     }
 
     // Check slot availability
-    const isAvailable = await checkSlotAvailability(supabaseAdmin, body.scheduledAt);
+    const isAvailable = await checkSlotAvailability(supabase, body.scheduledAt);
     if (!isAvailable) {
       return NextResponse.json(
-        { error: 'This time slot is no longer available. Please select another slot.' },
+        { error: "This time slot is no longer available. Please select another slot." },
         { status: 409 }
       );
     }
 
-    // Create appointment in Supabase
-    const { data, error } = await supabaseAdmin
-      .from('appointments')
-      .insert([
-        {
-          service_type: normalizedServiceType,
-          scheduled_at: body.scheduledAt,
-          duration_minutes: APPOINTMENT_DURATION_MINUTES,
-          customer_name: body.customerName,
-          customer_email: body.customerEmail,
-          customer_phone: body.customerPhone,
-          customer_address: body.customerAddress || null,
-          vehicle_type: body.vehicleType || null,
-          message: body.message || null,
-          status: 'pending',
-        }
-      ])
-      .select()
-      .single();
+    // 1) Create / upsert client (by email)
+    // NOTE: clients.full_name is NOT NULL in your schema
+    const clientPayload = {
+      full_name: body.customerName,
+      email: body.customerEmail,
+      phone: body.customerPhone,
+      address: body.customerAddress || null,
+      notes: body.message || null,
+      vehicle_info: body.vehicleType || null,
+      source: "booking",
+      crm_stage: "reception",
+    };
 
-    if (error) {
-      console.error('Supabase insert error:', error);
-      return NextResponse.json(
-        { error: 'Failed to create appointment' },
-        { status: 500 }
-      );
+    // Try find client by email (unique not enforced, so we pick first)
+    const { data: existingClient, error: existingClientError } = await supabase
+      .from("clients")
+      .select("id")
+      .eq("email", body.customerEmail)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingClientError) {
+      console.error("Supabase client lookup error:", existingClientError);
+      return NextResponse.json({ error: "Failed to create appointment" }, { status: 500 });
     }
 
-    // Send email notifications via Google Apps Script
+    let clientId = existingClient?.id || null;
+
+    if (!clientId) {
+      const { data: newClient, error: createClientError } = await supabase
+        .from("clients")
+        .insert([clientPayload])
+        .select("id")
+        .single();
+
+      if (createClientError) {
+        console.error("Supabase client insert error:", createClientError);
+        return NextResponse.json({ error: "Failed to create appointment" }, { status: 500 });
+      }
+
+      clientId = newClient.id;
+    } else {
+      // optional: keep client info fresh
+      const { error: updateClientError } = await supabase
+        .from("clients")
+        .update(clientPayload)
+        .eq("id", clientId);
+
+      if (updateClientError) {
+        console.warn("Supabase client update warning:", updateClientError);
+      }
+    }
+
+    // 2) Create appointment (ONLY columns that exist in your DB)
+    const appointmentPayload = {
+      client_id: clientId,
+      scheduled_at: body.scheduledAt,
+      duration_minutes: APPOINTMENT_DURATION_MINUTES,
+      service_type: normalizedServiceType,
+      address: body.customerAddress || null,
+      status: "pending",
+      type: normalizedServiceType === "collecte" ? "pickup" : null, // respects constraint type_check
+    };
+
+    const { data: appt, error: apptError } = await supabase
+      .from("appointments")
+      .insert([appointmentPayload])
+      .select("id, scheduled_at, status, service_type, client_id")
+      .single();
+
+    if (apptError) {
+      console.error("Supabase appointment insert error:", apptError);
+      return NextResponse.json({ error: "Failed to create appointment" }, { status: 500 });
+    }
+
+    // 3) Send email via Apps Script webhook (best effort)
     try {
       const webhookUrl = process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL;
-
       if (webhookUrl) {
         await fetch(webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             appointment: {
-              id: data.id,
-              serviceType: data.service_type,
-              scheduledAt: data.scheduled_at,
+              id: appt.id,
+              serviceType: appt.service_type,
+              scheduledAt: appt.scheduled_at,
+              status: appt.status,
             },
             customer: {
               name: body.customerName,
@@ -185,34 +206,32 @@ export async function POST(request) {
               address: body.customerAddress || null,
               vehicleType: body.vehicleType || null,
               message: body.message || null,
-            }
-          })
+            },
+          }),
         });
+      } else {
+        console.warn("[booking] GOOGLE_APPS_SCRIPT_WEBHOOK_URL is missing, email not sent");
       }
     } catch (emailError) {
-      // Log error but don't fail the booking
-      console.error('Email notification error:', emailError);
+      console.error("Email notification error:", emailError);
     }
 
-    // Return sanitized appointment data (exclude sensitive fields if needed)
-    return NextResponse.json({
-      success: true,
-      appointment: {
-        id: data.id,
-        serviceType: data.service_type,
-        scheduledAt: data.scheduled_at,
-        status: data.status,
-      }
-    }, { status: 201 });
-
-  } catch (error) {
-    console.error('Supabase booking insert error:', error);
+    // ✅ Return
     return NextResponse.json(
-      { error: 'Failed to create appointment', details: error },
-      { status: 500 }
+      {
+        success: true,
+        appointment: {
+          id: appt.id,
+          clientId: appt.client_id,
+          serviceType: appt.service_type,
+          scheduledAt: appt.scheduled_at,
+          status: appt.status,
+        },
+      },
+      { status: 201 }
     );
+  } catch (error) {
+    console.error("Booking API error:", error);
+    return NextResponse.json({ error: "Failed to create appointment" }, { status: 500 });
   }
-    
-
-  
 }

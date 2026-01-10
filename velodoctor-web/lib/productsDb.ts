@@ -1,6 +1,6 @@
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
-export type DbInventory = {
+export type InventoryRow = {
   price_sell: number | null;
   quantity: number | null;
 };
@@ -15,8 +15,8 @@ export type DbProduct = {
   seo_title: string | null;
   seo_description: string | null;
 
-  // Supabase may return object OR array depending on relationship shape
-  inventory_items: DbInventory | DbInventory[] | null;
+  // Supabase peut renvoyer objet ou array
+  inventory_items: InventoryRow | InventoryRow[] | null;
 };
 
 const PRODUCT_SELECT = `
@@ -34,30 +34,12 @@ const PRODUCT_SELECT = `
   )
 `;
 
-function normalizeInventory(inv: DbInventory | DbInventory[] | null): DbInventory | null {
+function normalizeInventory(inv: DbProduct["inventory_items"]): InventoryRow | null {
   if (!inv) return null;
-  if (Array.isArray(inv)) return inv[0] ?? null;
-  return inv;
+  return Array.isArray(inv) ? (inv[0] ?? null) : inv;
 }
 
-function normalizeProduct(row: any): DbProduct {
-  return {
-    id: String(row?.id ?? ""),
-    slug: String(row?.slug ?? ""),
-    title: String(row?.title ?? ""),
-    description: row?.description ?? null,
-    cover_image_url: row?.cover_image_url ?? null,
-    is_published: Boolean(row?.is_published),
-    seo_title: row?.seo_title ?? null,
-    seo_description: row?.seo_description ?? null,
-    inventory_items: normalizeInventory(row?.inventory_items ?? null),
-  };
-}
-
-/**
- * Returns all published products (listing).
- */
-export async function fetchPublishedProducts(): Promise<DbProduct[]> {
+export async function fetchPublishedProducts(): Promise<(DbProduct & { _inv: InventoryRow | null })[]> {
   const supabase = getSupabaseServerClient();
 
   const { data, error } = await supabase
@@ -68,16 +50,16 @@ export async function fetchPublishedProducts(): Promise<DbProduct[]> {
 
   if (error) throw error;
 
-  return (Array.isArray(data) ? data : []).map(normalizeProduct);
+  return (data ?? []).map((p: any) => ({
+    ...(p as DbProduct),
+    _inv: normalizeInventory((p as DbProduct).inventory_items),
+  }));
 }
 
-/**
- * Returns one product by slug (published only by default).
- */
 export async function getDbProductBySlug(
   slug: string,
   opts?: { allowUnpublished?: boolean }
-): Promise<DbProduct | null> {
+): Promise<(DbProduct & { _inv: InventoryRow | null }) | null> {
   const supabase = getSupabaseServerClient();
 
   let query = supabase
@@ -89,8 +71,11 @@ export async function getDbProductBySlug(
     query = query.eq("is_published", true);
   }
 
-  const { data, error } = await query.limit(1).maybeSingle();
-  if (error) throw error;
+  const { data, error } = await query.maybeSingle();
 
-  return data ? normalizeProduct(data) : null;
+  if (error) throw error;
+  if (!data) return null;
+
+  const p = data as DbProduct;
+  return { ...p, _inv: normalizeInventory(p.inventory_items) };
 }
