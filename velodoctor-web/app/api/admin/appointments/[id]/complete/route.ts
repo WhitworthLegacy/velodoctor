@@ -8,10 +8,10 @@ export async function OPTIONS() {
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = context.params;
 
     const auth = await requireStaff(request);
     if ("error" in auth) {

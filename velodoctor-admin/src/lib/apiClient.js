@@ -1,37 +1,28 @@
-import { supabase } from './supabase';
+// src/lib/apiClient.js
+const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
-const baseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
-
-async function getAccessToken() {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token || null;
+export function getApiBaseUrl() {
+  return baseUrl?.replace(/\/$/, "") || null;
 }
 
 export async function apiFetch(path, options = {}) {
-  if (!baseUrl) {
-    throw new Error('VITE_API_BASE_URL is not set');
+  const apiBase = getApiBaseUrl();
+  if (!apiBase) {
+    console.error("Missing VITE_API_BASE_URL. Set it in Vercel env for velodoctor-admin.");
+    // => retourne une erreur propre au lieu de casser le rendu
+    return { ok: false, status: 0, data: null, error: "Missing API base URL" };
   }
 
-  const token = await getAccessToken();
-  const headers = new Headers(options.headers || {});
+  const url = `${apiBase}${path.startsWith("/") ? path : `/${path}`}`;
 
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (e) {
+    return { ok: false, status: 0, data: null, error: String(e) };
   }
 
-  if (options.body && !(options.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...options,
-    headers,
-  });
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(payload?.error || 'API request failed');
-  }
-
-  return payload;
+  let data = null;
+  try { data = await res.json(); } catch {}
+  return { ok: res.ok, status: res.status, data, error: res.ok ? null : (data?.error || "Request failed") };
 }

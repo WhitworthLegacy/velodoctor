@@ -8,19 +8,28 @@ export async function OPTIONS() {
 
 export async function GET(
   request: NextRequest,
-  ctx: { params: Promise<{ id: string }> }
+  ctx: { params: { id: string } }
 ) {
-  const { id } = await ctx.params;
+  const { id } = ctx.params;
   const auth = await requireStaff(request);
   if ('error' in auth) {
     return auth.error;
   }
 
-  const { data, error } = await auth.supabase
+  const { searchParams } = new URL(request.url);
+  const includeCancelled = searchParams.get('include_cancelled') === 'true';
+
+  let query = auth.supabase
     .from('appointments')
     .select('id, scheduled_at, service_type, status')
     .eq('client_id', id)
     .order('scheduled_at', { ascending: false });
+
+  if (!includeCancelled) {
+    query = query.neq('status', 'cancelled');
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('[admin] client appointments failed:', error);

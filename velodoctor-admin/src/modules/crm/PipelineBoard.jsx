@@ -5,7 +5,7 @@ import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import ClientForm from './ClientForm';
 import Button from '../../components/ui/Button';
-import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
+import CrmCardModal from '../../components/admin/CrmCardModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
 import { apiFetch } from '../../lib/apiClient';
 
@@ -98,6 +98,21 @@ export default function PipelineBoard() {
     setDetailsLead(lead);
     setDetailsOpen(true);
     loadLeadAppointments(lead.id);
+  };
+
+  const handleStageChange = async (nextStage) => {
+    if (!detailsLead) return;
+    const updated = { ...detailsLead, crm_stage: nextStage };
+    setDetailsLead(updated);
+    setLeads((prev) => prev.map((l) => (l.id === detailsLead.id ? updated : l)));
+    try {
+      await apiFetch(`/api/admin/clients/${detailsLead.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ crm_stage: nextStage }),
+      });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleDeleteAppointment = async (appointmentId) => {
@@ -256,7 +271,7 @@ export default function PipelineBoard() {
             <div style={{ padding: '12px', fontWeight: 'bold', borderTopLeftRadius: '12px', borderTopRightRadius: '12px', backgroundColor: getHeaderColor(col.slug), color: '#374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>{col.label}</span>
               <span style={{ background: 'rgba(255,255,255,0.6)', borderRadius: '10px', padding: '2px 8px', fontSize: '12px' }}>
-                {leads.filter(l => l.crm_stage === col.slug).length}
+                {leads.filter(l => (l.crm_stage || CRM_STAGES.NEW_LEAD) === col.slug).length}
               </span>
             </div>
 
@@ -299,66 +314,16 @@ export default function PipelineBoard() {
         />
       </Modal>
 
-      <AdminDetailsModal
+      <CrmCardModal
         open={detailsOpen}
         onClose={() => setDetailsOpen(false)}
-        title="Détails client"
-        sections={[
-          { label: 'Nom', value: detailsLead?.full_name },
-          { label: 'Téléphone', value: detailsLead?.phone },
-          { label: 'Email', value: detailsLead?.email },
-          { label: 'Adresse', value: detailsLead?.address },
-          { label: 'Stage CRM', value: detailsLead?.crm_stage || CRM_STAGES.NEW_LEAD },
-          { label: 'Notes', value: detailsLead?.notes },
-          { label: 'Véhicule', value: detailsLead?.vehicle_info },
-          {
-            label: 'Rendez-vous',
-            value: appointmentsLoading
-              ? 'Chargement...'
-              : leadAppointments.length === 0
-                ? '—'
-                : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {leadAppointments.map((apt) => (
-                      <div key={apt.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{formatDateTime(apt.scheduled_at)}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--gray)' }}>
-                            {apt.service_type} · {apt.status}
-                          </div>
-                        </div>
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleDeleteAppointment(apt.id)}
-                            style={{
-                              border: '1px solid #ef4444',
-                              color: '#ef4444',
-                              background: 'transparent',
-                              borderRadius: '6px',
-                              padding: '6px 10px',
-                              cursor: 'pointer',
-                              fontWeight: 600,
-                            }}
-                          >
-                            Supprimer
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ),
-          },
-        ]}
-        actions={[
-          {
-            label: 'Modifier',
-            onClick: () => {
-              setSelectedLead(detailsLead);
-              setIsModalOpen(true);
-            },
-            variant: 'primary',
-          },
-        ]}
+        client={detailsLead}
+        columns={columns}
+        appointments={leadAppointments}
+        appointmentsLoading={appointmentsLoading}
+        onStageChange={handleStageChange}
+        onDeleteAppointment={handleDeleteAppointment}
+        isAdmin={isAdmin}
       />
     </div>
   );
@@ -388,13 +353,4 @@ function formatStageLabel(slug) {
   return slug
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function formatDateTime(value) {
-  return value
-    ? new Date(value).toLocaleString('fr-BE', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      })
-    : '—';
 }

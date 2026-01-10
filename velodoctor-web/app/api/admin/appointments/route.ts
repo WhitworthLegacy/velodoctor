@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const status = searchParams.get('status');
+  const includeCancelled = searchParams.get('include_cancelled') === 'true';
 
   let query = auth.supabase
     .from('appointments')
@@ -22,6 +23,8 @@ export async function GET(request: NextRequest) {
 
   if (status) {
     query = query.eq('status', status);
+  } else if (!includeCancelled) {
+    query = query.neq('status', 'cancelled');
   }
 
   const { data, error } = await query;

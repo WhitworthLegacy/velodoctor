@@ -8,9 +8,9 @@ export async function OPTIONS() {
 
 export async function GET(
   request: NextRequest,
-  ctx: { params: Promise<{ id: string }> }
+  ctx: { params: { id: string } }
 ) {
-  const { id } = await ctx.params;
+  const { id } = ctx.params;
   const auth = await requireStaff(request);
   if ('error' in auth) {
     return auth.error;
@@ -32,9 +32,9 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  ctx: { params: Promise<{ id: string }> }
+  ctx: { params: { id: string } }
 ) {
-  const { id } = await ctx.params;
+  const { id } = ctx.params;
   const auth = await requireStaff(request);
   if ('error' in auth) {
     return auth.error;
