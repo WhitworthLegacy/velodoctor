@@ -131,3 +131,5 @@ if (process.env.NODE_ENV !== 'production') {
     }
   });
 }
+
+console.log('[products] slugs:', products.map(p => p.slug));

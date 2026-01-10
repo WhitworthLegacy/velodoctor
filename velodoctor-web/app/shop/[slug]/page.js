@@ -5,7 +5,11 @@ import Button from '@/components/Button';
 import Link from 'next/link';
 import { getProductBySlug } from '@/lib/products';
 
+
+
+
 export async function generateMetadata({ params }) {
+  console.log('[ProductPage] slug param:', params.slug);
   const product = getProductBySlug(params.slug);
 
   if (!product) {
