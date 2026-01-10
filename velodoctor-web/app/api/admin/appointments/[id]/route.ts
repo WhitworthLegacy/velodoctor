@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '@/lib/supabaseServer';
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
 const ADMIN_ROLES = new Set(['admin', 'super_admin']);
 
@@ -36,27 +36,21 @@ async function requireAdmin(request: Request) {
   return { supabase };
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const auth = await requireAdmin(request);
-    if ('error' in auth) {
-      return auth.error;
-    }
+export async function DELETE(
+  _req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const { id } = await ctx.params;
 
-    const { supabase } = auth;
-    const { error } = await supabase
-      .from('appointments')
-      .delete()
-      .eq('id', params.id);
+  const supabase = getSupabaseServerClient();
 
-    if (error) {
-      console.error('[admin] appointment delete failed:', error);
-      return NextResponse.json({ error: 'Failed to delete appointment' }, { status: 500 });
-    }
+  const { error } = await supabase
+    .from("appointments")
+    .update({ status: "cancelled" })
+    .eq("id", id);
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('[admin] delete route error:', error);
-    return NextResponse.json({ error: 'Failed to delete appointment' }, { status: 500 });
+  if (error) {
+    return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   }
+  return NextResponse.json({ success: true });
 }
