@@ -27,12 +27,19 @@ function App() {
     window.supabase = supabase;
     // 1. Récupérer session + rôle
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      
-      if (session) {
-        await resolveUserRole();
-      } else {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (import.meta.env.DEV) {
+          console.info('[auth] session fetched', { hasSession: Boolean(session) });
+        }
+        setSession(session);
+        if (session) {
+          await resolveUserRole();
+        } else {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('[auth] session fetch failed', error);
         setLoading(false);
       }
     };
@@ -41,6 +48,9 @@ function App() {
 
     // 2. Écouteur de changement
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (import.meta.env.DEV) {
+        console.info('[auth] auth state changed', { hasSession: Boolean(session) });
+      }
       setSession(session);
       if (session) {
         await resolveUserRole();
@@ -56,9 +66,17 @@ function App() {
   async function resolveUserRole() {
     try {
       const role = await fetchUserRole();
+      if (import.meta.env.DEV) {
+        console.info('[auth] role resolved', { role: role || null });
+      }
       setUserRole(role || null);
     } catch (e) {
       console.error(e);
+      const status = e?.status;
+      if (status === 401 || status === 403) {
+        await supabase.auth.signOut();
+        setSession(null);
+      }
     } finally {
       setLoading(false);
     }
