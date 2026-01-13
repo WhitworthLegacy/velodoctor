@@ -14,12 +14,10 @@
 ### 2. **API Routes**
 - ✅ `GET /api/availability?date=YYYY-MM-DD` - Check available slots
 - ✅ `POST /api/booking` - Create appointments with validation
-- ✅ Email notifications integrated via Google Apps Script
+- ✅ Email notifications integrated via Resend
 
 ### 3. **Email Notifications** 📧
-- ✅ Google Apps Script webhook configured
-- ✅ Admin notification (full booking details)
-- ✅ Customer confirmation email (professional template)
+- ✅ Resend integration for customer confirmation
 - ✅ Automatic sending after each booking
 
 ### 4. **Website Updates**
@@ -57,23 +55,18 @@ GOOGLE_PLACES_API_KEY=your-google-places-api-key
 GOOGLE_PLACE_ID=your-place-id
 ```
 
-### 2. **Finish Google Apps Script Setup** (For emails)
+### 2. **Configure Resend** (For emails)
 
-Your webhook is already configured in `.env.local`:
+Add this env var in Vercel (or `.env.local`):
 ```
-GOOGLE_APPS_SCRIPT_WEBHOOK_URL=https://script.google.com/macros/s/AKfycbzfbv3XH8Awpvk0xRRtwnQiwnmzK9TW11ssBDrD3jIr7piI58DaKl6xc8pB1nFUeuFh/exec
+RESEND_API_KEY=your-resend-api-key
 ```
-
-Follow the guide in [EMAIL_NOTIFICATIONS.md](EMAIL_NOTIFICATIONS.md):
-1. Update `ADMIN_EMAIL` in the Google Apps Script
-2. Test the script by running `testEmails()`
-3. Verify both emails arrive in your Gmail
 
 ### 3. **Install Dependencies**
 
 ```bash
 cd velodoctor-web
-npm install @supabase/supabase-js
+npm install @supabase/supabase-js resend
 ```
 
 ---
@@ -95,7 +88,6 @@ npm install @supabase/supabase-js
 - System checks availability twice: display + submit
 
 ### Email Notifications:
-- **Admin**: Receives full booking details with customer info
 - **Customer**: Gets confirmation with appointment summary and 45€ diagnostic info
 
 ---
@@ -117,7 +109,6 @@ velodoctor-web/
 │   └── Button.js                     # Slimmer, wider premium buttons
 ├── ../supabase/migrations/20260109101000_appointments_booking.sql  # Shared DB migration
 ├── BOOKING_SYSTEM.md                 # Technical documentation
-├── EMAIL_NOTIFICATIONS.md            # Email setup guide
 └── .env.local.example                # Template for env vars
 ```
 
@@ -129,7 +120,6 @@ Once Supabase is set up:
 
 - [ ] Visit `/booking` and complete a test booking
 - [ ] Verify appointment appears in Supabase `appointments` table
-- [ ] Check you received admin notification email
 - [ ] Check test customer email for confirmation
 - [ ] Try booking the same slot twice → should show conflict
 - [ ] Test "Collecte" requires address field
@@ -142,7 +132,7 @@ Once Supabase is set up:
 Before deploying to production:
 
 1. **Environment Variables**: Set all env vars in your hosting platform (Vercel/Netlify)
-2. **Test Emails**: Make sure `ADMIN_EMAIL` in Google Apps Script is your real email
+2. **Test Emails**: Send a booking and confirm the customer email is delivered
 3. **Update Contact Info**: Verify phone/WhatsApp links work
 4. **Domain**: Update email templates with your actual domain (if needed)
 
@@ -161,14 +151,13 @@ Before deploying to production:
 - ✅ `.env.local` is in `.gitignore` (secrets safe)
 - ✅ Service role key only used in Next.js server routes (never in client code)
 - ✅ RLS policies prevent unauthorized database access
-- ✅ Email webhook URL is safe to expose (Google Apps Script handles auth)
+- ✅ Email sending uses Resend API with server-side keys
 
 ---
 
 ## 📚 Documentation
 
 - **Booking System**: [BOOKING_SYSTEM.md](BOOKING_SYSTEM.md)
-- **Email Setup**: [EMAIL_NOTIFICATIONS.md](EMAIL_NOTIFICATIONS.md)
 - **Environment Variables**: [.env.local.example](.env.local.example)
 
 ---

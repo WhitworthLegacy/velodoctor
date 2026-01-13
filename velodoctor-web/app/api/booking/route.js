@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Resend } from "resend";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
 
 const APPOINTMENT_DURATION_MINUTES = 90;
@@ -28,6 +29,45 @@ function normalizeServiceType(value) {
  */
 function deriveAppointmentType(normalizedServiceType) {
   return normalizedServiceType === "collecte" ? "pickup" : "delivery";
+}
+
+function buildBookingEmail({ appointment, customer }) {
+  const scheduledAt = appointment?.scheduledAt || "";
+  const serviceType = appointment?.serviceType || "";
+  const address = appointment?.address || customer?.address || "";
+  const vehicleInfo = customer?.vehicleType || "";
+  const message = customer?.message || "";
+
+  return `
+    <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
+      <h3>Confirmation de rendez-vous ✅</h3>
+      <p>Bonjour <strong>${customer?.name || "Client"}</strong>,</p>
+      <p>Votre demande de rendez-vous a bien été enregistrée.</p>
+      <div style="border-left: 4px solid #00ACC2; background: #ECFEFF; padding: 18px; border-radius: 6px; margin: 18px 0;">
+        <div style="margin: 6px 0; font-size: 14px;"><strong>📅 Date & heure :</strong><br>${scheduledAt}</div>
+        <div style="margin: 6px 0; font-size: 14px;"><strong>🛠 Service :</strong><br>${serviceType}</div>
+        ${address ? `<div style="margin: 6px 0; font-size: 14px;"><strong>📍 Adresse :</strong><br>${address}</div>` : ""}
+        ${vehicleInfo ? `<div style="margin: 6px 0; font-size: 14px;"><strong>🚲 Véhicule :</strong><br>${vehicleInfo}</div>` : ""}
+        ${message ? `<div style="margin: 6px 0; font-size: 14px;"><strong>📝 Note :</strong><br>${message}</div>` : ""}
+      </div>
+      <div style="border-left: 4px solid #F59E0B; background: #FFF7ED; padding: 14px 16px; border-radius: 6px; margin: 18px 0; font-size: 14px; line-height: 1.55;">
+        <strong>ℹ️ Diagnostic</strong><br>
+        Le diagnostic est facturé <strong>45€</strong> et passe à <strong>0€</strong> si vous acceptez le devis de réparation.
+      </div>
+      <p style="font-size:14px; color:#4B5563;">
+        Horaires : <strong>Lu-Sa 9:00 - 17:00</strong><br>
+        Contact : <a href="mailto:trott@velodoctor.be" style="color:#00ACC2; text-decoration:none; font-weight:600;">trott@velodoctor.be</a>
+      </p>
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eeeeee; font-size: 14px; color: #293133; border-left: 4px solid #00ACC2; padding-left: 15px;">
+        <strong style="font-size: 16px;">L'équipe VeloDoctor</strong><br>
+        <span style="color: #6C757D;">Expert en réparation de véhicule électrique</span>
+        <br><br>
+        <strong style="color: #00ACC2; font-style: italic;">VELODOCTOR ⚡</strong><br>
+        📞 <a href="tel:+32456951445" style="color: #293133; text-decoration: none;">+32 456 95 14 45</a><br>
+        🌐 <a href="https://velodoctor.be" style="color: #00ACC2; text-decoration: none;">velodoctor.be</a>
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -252,34 +292,54 @@ export async function POST(request) {
       return NextResponse.json({ error: "Failed to create appointment" }, { status: 500 });
     }
 
-    // Email notification via Apps Script webhook (optional)
+    // Email notification via Resend (optional)
     try {
-      const webhookUrl = process.env.GOOGLE_APPS_SCRIPT_WEBHOOK_URL;
-      if (webhookUrl) {
-        await fetch(webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            appointment: {
-              id: appt.id,
-              clientId: appt.client_id,
-              serviceType: appt.service_type,
-              scheduledAt: appt.scheduled_at,
-              type: appt.type,
-              address: appt.address,
-            },
-            customer: {
-              name: body.customerName,
-              email: body.customerEmail || null,
-              phone: body.customerPhone || null,
-              address: body.customerAddress || null,
-              vehicleType: body.vehicleType || null,
-              message: body.message || null,
-            },
-          }),
-        });
-      } else {
-        console.warn("[booking] GOOGLE_APPS_SCRIPT_WEBHOOK_URL not set -> no email sent");
+      const resendKey = process.env.RESEND_API_KEY;
+      if (!resendKey) {
+        console.warn("[booking] RESEND_API_KEY not set -> no email sent");
+      } else if (body.customerEmail) {
+        const resend = new Resend(resendKey);
+        const payload = {
+          appointment: {
+            id: appt.id,
+            clientId: appt.client_id,
+            serviceType: appt.service_type,
+            scheduledAt: appt.scheduled_at,
+            type: appt.type,
+            address: appt.address,
+          },
+          customer: {
+            name: body.customerName,
+            email: body.customerEmail || null,
+            phone: body.customerPhone || null,
+            address: body.customerAddress || null,
+            vehicleType: body.vehicleType || null,
+            message: body.message || null,
+          },
+        };
+        const html = buildBookingEmail(payload);
+
+        const primaryFrom = "VeloDoctor <trott@velodoctor.be>";
+        const fallbackFrom = "VeloDoctor <velodoctor.be@gmail.com>";
+
+        try {
+          await resend.emails.send({
+            from: primaryFrom,
+            to: body.customerEmail,
+            subject: "Confirmation de votre rendez-vous VeloDoctor ✅",
+            html,
+            replyTo: fallbackFrom,
+          });
+        } catch (sendError) {
+          console.warn("[booking] Resend primary sender failed, retrying fallback:", sendError);
+          await resend.emails.send({
+            from: fallbackFrom,
+            to: body.customerEmail,
+            subject: "Confirmation de votre rendez-vous VeloDoctor ✅",
+            html,
+            replyTo: fallbackFrom,
+          });
+        }
       }
     } catch (emailError) {
       console.error("[booking] email notification error:", emailError);

@@ -138,12 +138,10 @@ All Supabase access happens in Next.js server routes (never directly from the cl
 4. Validates `scheduledAt` is a valid future datetime
 5. Re-checks slot availability (prevents race conditions)
 6. Inserts appointment using Supabase service role key (server-side only)
-7. Sends email notifications via Google Apps Script webhook
+7. Sends email notifications via Resend
 
 **Email Notifications:**
-After successful booking creation, the API automatically sends:
-- **Admin notification**: Email to VeloDoctor with full booking details
-- **Customer confirmation**: Professional confirmation email with appointment summary
+After successful booking creation, the API sends a customer confirmation via Resend.
 
 ---
 

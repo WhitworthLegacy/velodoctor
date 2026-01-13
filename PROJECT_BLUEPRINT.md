@@ -44,7 +44,7 @@
 - `SUPABASE_SERVICE_ROLE_KEY` (required) — `velodoctor-web/lib/supabaseServer.ts`.
 - `GOOGLE_PLACES_API_KEY` (optional) — `velodoctor-web/app/api/google-reviews/route.ts`.
 - `GOOGLE_PLACE_ID` (optional) — `velodoctor-web/app/api/google-reviews/route.ts`.
-- `GOOGLE_APPS_SCRIPT_WEBHOOK_URL` (optional) — `velodoctor-web/app/api/booking/route.js` (email webhook).
+- `RESEND_API_KEY` (optional) — `velodoctor-web/app/api/booking/route.js` (email confirmations).
 - `ADMIN_ORIGIN` (optional) — `velodoctor-web/lib/cors.ts` (CORS allow-list).
 - **Documented but not referenced in code**: `NEXT_PUBLIC_SUPABASE_ANON_KEY` appears in `velodoctor-web/BOOKING_SYSTEM.md` (used historically for client access, but not referenced in current code).
 
@@ -102,7 +102,7 @@
   - Input: JSON `serviceType`, `scheduledAt`, `customerName`, `customerPhone`, etc.
   - Output: `{ success: true, appointment }` (or error).
   - Creates/updates `clients` and `appointments` using service role.
-  - Optional webhook call via `GOOGLE_APPS_SCRIPT_WEBHOOK_URL`.
+- Optional email send via Resend when `RESEND_API_KEY` is set.
 - `GET /api/google-reviews` — `velodoctor-web/app/api/google-reviews/route.ts`
   - Output: `{ source, reviews, averageRating, totalRatings }`.
   - Uses Google Places if env vars exist; falls back to `FALLBACK_REVIEWS`.
@@ -303,4 +303,3 @@
 
 **Supabase**
 - Migrations in `supabase/migrations/` (no CLI scripts defined in repo; run via Supabase CLI manually if needed).
-
