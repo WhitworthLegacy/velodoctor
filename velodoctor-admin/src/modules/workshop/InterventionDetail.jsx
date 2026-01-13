@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiClient';
 import { ArrowLeft, Wrench } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -23,30 +23,8 @@ export default function InterventionDetail() {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('interventions')
-        .select(`
-          *,
-          vehicles (
-            id,
-            brand,
-            model,
-            type,
-            license_plate,
-            vin,
-            clients (
-              id,
-              full_name,
-              email,
-              phone
-            )
-          )
-        `)
-        .eq('id', id)
-        .single();
-
-      if (fetchError) throw fetchError;
-      setIntervention(data);
+      const payload = await apiFetch(`/api/admin/interventions/${id}`);
+      setIntervention(payload.intervention || null);
     } catch (err) {
       console.error('Error fetching intervention:', err);
       setError(err.message);

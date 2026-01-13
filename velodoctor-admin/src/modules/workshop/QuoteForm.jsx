@@ -1,35 +1,42 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiClient';
 
 export default function QuoteForm({ intervention, onSuccess, onCancel }) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     // Mise à jour Supabase : Prix + Changement de statut
-    const { error } = await supabase
-      .from('interventions')
-      .update({ 
-        quote_amount: parseFloat(amount),
-        status: 'quote_sent' 
-      })
-      .eq('id', intervention.id);
-
-    setLoading(false);
-    
-    if (!error) {
+    try {
+      await apiFetch(`/api/admin/interventions/${intervention.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          quote_amount: parseFloat(amount),
+          status: 'quote_sent'
+        })
+      });
       onSuccess(); // Ferme la modale et rafraîchit
-    } else {
-      alert("Erreur lors de l'envoi du devis");
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || "Erreur lors de l'envoi du devis");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <form onSubmit={handleSubmit}>
+      {error && (
+        <p style={{ color: 'var(--danger)', marginBottom: '10px' }}>
+          {error}
+        </p>
+      )}
       <p style={{ marginBottom: '15px', color: 'var(--gray)' }}>
         Pour : <strong>{intervention.vehicles?.brand} {intervention.vehicles?.model}</strong>
       </p>

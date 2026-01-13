@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiClient';
 import WorkshopCard from './WorkshopCard';
 import Modal from '../../components/ui/Modal';
 import QuoteForm from './QuoteForm';
@@ -9,6 +9,7 @@ import { Automation } from '../../lib/automation';
 export default function WorkshopDashboard() {
   const [interventions, setInterventions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   // États Modale
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,14 +23,14 @@ export default function WorkshopDashboard() {
   async function fetchInterventions() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('interventions')
-        .select(`*, vehicles (brand, model, type, clients (full_name))`)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setInterventions(data);
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+      setError(null);
+      const payload = await apiFetch('/api/admin/interventions');
+      setInterventions(payload.interventions || []);
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || 'Erreur chargement interventions');
+      setInterventions([]);
+    } finally { setLoading(false); }
   }
 
   // Cette fonction est appelée par les boutons de la carte
@@ -65,8 +66,16 @@ export default function WorkshopDashboard() {
         }
       } else {
         // Cas normal
-        await supabase.from('interventions').update({ status: newStatus }).eq('id', id);
-        fetchInterventions();
+        try {
+          await apiFetch(`/api/admin/interventions/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: newStatus })
+          });
+          fetchInterventions();
+        } catch (err) {
+          console.error(err);
+          setError(err?.message || 'Erreur mise à jour intervention');
+        }
       }
   }
 
@@ -75,6 +84,12 @@ export default function WorkshopDashboard() {
       <header style={{ marginBottom: '20px' }}>
         <h1>🔧 Atelier</h1>
       </header>
+
+      {error && (
+        <p style={{ color: 'var(--danger)', marginBottom: '12px' }}>
+          {error}
+        </p>
+      )}
 
       {loading ? <p>Chargement...</p> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

@@ -5,7 +5,6 @@ import Button from "@/components/Button";
 import Link from "next/link";
 
 import { getDbProductBySlug } from "@/lib/productsDb";
-import { FALLBACK_PRODUCTS_ENABLED, getProductBySlug, toUiProductFromFallback } from "@/lib/products";
 
 function toUiFromDb(db) {
   return {
@@ -56,7 +55,6 @@ export default async function ProductPage({ params }) {
   const slug = await resolveSlug(params);
 
   let product = null;
-  let usedFallback = false;
 
   if (!slug) {
     return (
@@ -79,14 +77,6 @@ export default async function ProductPage({ params }) {
     if (db) product = toUiFromDb(db);
   } catch (e) {
     console.error("[shop][slug] DB error:", e);
-  }
-
-  if (!product && FALLBACK_PRODUCTS_ENABLED) {
-    const fb = getProductBySlug(slug);
-    if (fb) {
-      usedFallback = true;
-      product = toUiProductFromFallback(fb);
-    }
   }
 
   if (!product) {
@@ -144,8 +134,6 @@ export default async function ProductPage({ params }) {
             </div>
 
             {product.description && <p className="text-gray-700 leading-relaxed mb-8">{product.description}</p>}
-            {usedFallback && <p className="text-sm text-gray-500 mb-6">(Mode dégradé : affichage provisoire)</p>}
-
             {Array.isArray(product.features) && product.features.length > 0 && (
               <Card className="mb-8">
                 <h3 className="font-bold text-vdDark mb-4">Caractéristiques</h3>

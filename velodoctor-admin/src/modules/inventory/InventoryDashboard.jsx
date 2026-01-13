@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Package, Plus, ArrowDown, ArrowUp, AlertTriangle, ShoppingCart, Search } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiClient';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
@@ -10,6 +10,7 @@ import StockMovementModal from './StockMovementModal'; // Fichier suivant
 export default function InventoryDashboard() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Modales
@@ -23,10 +24,18 @@ export default function InventoryDashboard() {
   }, []);
 
   async function fetchInventory() {
-    setLoading(true);
-    const { data } = await supabase.from('inventory_items').select('*').order('name');
-    setItems(data || []);
-    setLoading(false);
+    try {
+      setLoading(true);
+      setError(null);
+      const payload = await apiFetch('/api/admin/inventory-items');
+      setItems(payload.items || []);
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || 'Erreur chargement stock');
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // Filtrage
@@ -76,6 +85,12 @@ export default function InventoryDashboard() {
           </div>
         )}
       </header>
+
+      {error && (
+        <p style={{ color: 'var(--danger)', marginBottom: '12px' }}>
+          {error}
+        </p>
+      )}
 
       {loading ? <p>Chargement...</p> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

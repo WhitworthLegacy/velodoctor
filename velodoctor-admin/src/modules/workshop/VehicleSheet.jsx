@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Camera, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiClient';
 import Button from '../../components/ui/Button';
 
 export default function VehicleSheet({ intervention, onClose }) {
@@ -37,12 +38,10 @@ export default function VehicleSheet({ intervention, onClose }) {
       // On ajoute la nouvelle URL au tableau existant
       const newPhotosList = [...photos, newPhotoUrl];
       
-      const { error: dbError } = await supabase
-        .from('interventions')
-        .update({ photos_before: newPhotosList })
-        .eq('id', intervention.id);
-
-      if (dbError) throw dbError;
+      await apiFetch(`/api/admin/interventions/${intervention.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ photos_before: newPhotosList })
+      });
 
       setPhotos(newPhotosList); // Mettre à jour l'affichage
       alert("Photo ajoutée !");

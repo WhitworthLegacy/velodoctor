@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiClient';
 import { Plus, Edit2, Trash2, Wrench, Package } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -23,21 +23,8 @@ export default function QuoteItemsList({ quoteId, onItemsChange }) {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('quote_items')
-        .select(`
-          *,
-          inventory_items (
-            id,
-            name,
-            price_sell
-          )
-        `)
-        .eq('quote_id', quoteId)
-        .order('created_at', { ascending: true });
-
-      if (fetchError) throw fetchError;
-      setItems(data || []);
+      const payload = await apiFetch(`/api/admin/quotes/${quoteId}`);
+      setItems(payload.items || []);
     } catch (err) {
       console.error('Error fetching quote items:', err);
       setError(err.message);
@@ -54,15 +41,7 @@ export default function QuoteItemsList({ quoteId, onItemsChange }) {
       setError(null);
 
       // Delete the item
-      const { error: deleteError } = await supabase
-        .from('quote_items')
-        .delete()
-        .eq('id', itemId);
-
-      if (deleteError) throw deleteError;
-
-      // Recalculate totals
-      await supabase.rpc('recalc_quote_totals', { p_quote_id: quoteId });
+      await apiFetch(`/api/admin/quote-items/${itemId}`, { method: 'DELETE' });
 
       // Refresh items and parent quote
       await fetchItems();

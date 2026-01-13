@@ -8,7 +8,6 @@ import Section from "@/components/Section";
 import Card from "@/components/Card";
 import Button from "@/components/Button";
 import Link from "next/link";
-import { products as fallbackProducts } from "@/lib/products"; // fallback only
 import { fetchPublishedProducts } from "@/lib/productsDb";
 
 export const metadata = {
@@ -40,32 +39,18 @@ export default async function ShopPage() {
     dbError = e;
   }
 
-  const useFallback = !dbProducts || dbProducts.length === 0;
-
   // Normalize products for UI
-  const list = useFallback
-    ? fallbackProducts.map((p) => ({
-        key: `fallback-${p.id}`,
-        slug: p.slug,
-        title: p.name,
-        category: p.category,
-        description: p.description,
-        price: formatPrice(p.price),
-        inStock: !!p.inStock,
-        coverImageUrl: p.image || null,
-        source: "fallback",
-      }))
-    : dbProducts.map((p) => ({
-        key: p.id,
-        slug: p.slug,
-        title: p.title,
-        category: null, // ta table products n’a pas category -> optionnel
-        description: p.description,
-        price: formatPrice(p.inventory_items?.price_sell),
-        inStock: isInStock(p),
-        coverImageUrl: p.cover_image_url,
-        source: "db",
-      }));
+  const list = (dbProducts ?? []).map((p) => ({
+    key: p.id,
+    slug: p.slug,
+    title: p.title,
+    category: null, // ta table products n’a pas category -> optionnel
+    description: p.description,
+    price: formatPrice(p.inventory_items?.price_sell),
+    inStock: isInStock(p),
+    coverImageUrl: p.cover_image_url,
+    source: "db",
+  }));
 
   return (
     <main className="min-h-screen bg-white">
@@ -87,11 +72,6 @@ export default async function ShopPage() {
             </p>
           ) : null}
 
-          {useFallback ? (
-            <p className="mt-4 text-sm text-gray-500">
-              Mode fallback (produits en dur) — ajoute des produits dans Supabase pour activer la boutique DB.
-            </p>
-          ) : null}
         </div>
       </Section>
 

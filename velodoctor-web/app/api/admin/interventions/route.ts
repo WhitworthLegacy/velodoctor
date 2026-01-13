@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await auth.supabase
     .from('interventions')
-    .select('*, vehicles(brand, model, clients(full_name))')
+    .select('*, vehicles(id, brand, model, type, clients(id, full_name))')
     .order('created_at', { ascending: false });
 
   if (error) {

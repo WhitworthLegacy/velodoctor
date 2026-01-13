@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiClient';
 import Button from '../../components/ui/Button';
 
 export default function StockMovementModal({ item, type, onSuccess, onCancel }) {
   const [quantity, setQuantity] = useState(1);
   const [technician, setTechnician] = useState(''); // Nom du technicien (ou email session)
+  const [error, setError] = useState(null);
   
   // Pour la sélection client
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState('');
-  const [searchClient, setSearchClient] = useState('');
 
   useEffect(() => {
     // Si c'est une sortie, on charge la liste des clients pour l'associer
@@ -19,42 +19,59 @@ export default function StockMovementModal({ item, type, onSuccess, onCancel }) 
   }, [type]);
 
   async function loadClients() {
-    const { data } = await supabase.from('clients').select('id, full_name').order('full_name').limit(50);
-    setClients(data || []);
+    try {
+      const payload = await apiFetch('/api/admin/clients');
+      setClients((payload.clients || []).slice(0, 50));
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || 'Erreur chargement clients');
+      setClients([]);
+    }
   }
 
   async function handleConfirm(e) {
     e.preventDefault();
+    setError(null);
     if (type === 'OUT' && quantity > item.quantity) {
       alert("⚠️ Stock insuffisant !");
       return;
     }
 
-    // 1. Calculer nouvelle quantité
-    const newQty = type === 'IN' ? item.quantity + parseInt(quantity) : item.quantity - parseInt(quantity);
+    try {
+      const qty = parseInt(quantity, 10);
+      const delta = type === 'IN' ? qty : -qty;
+      const noteParts = [];
+      if (type === 'OUT') {
+        noteParts.push(`Client: ${selectedClient || 'Client Comptoir'}`);
+      }
+      if (technician) {
+        noteParts.push(`Technicien: ${technician}`);
+      }
 
-    // 2. Mettre à jour l'article
-    const { error: updateError } = await supabase
-      .from('inventory_items')
-      .update({ quantity: newQty })
-      .eq('id', item.id);
+      await apiFetch('/api/admin/stock-movements', {
+        method: 'POST',
+        body: JSON.stringify({
+          inventory_item_id: item.id,
+          delta,
+          reason: type === 'IN' ? 'Stock IN' : 'Stock OUT',
+          note: noteParts.length > 0 ? noteParts.join(' | ') : null
+        })
+      });
 
-    if (updateError) { alert("Erreur MAJ Stock"); return; }
-
-    // 3. Créer l'historique (TRACEABILITÉ)
-    await supabase.from('stock_movements').insert([{
-      item_id: item.id,
-      type: type,
-      quantity: parseInt(quantity),
-      related_client_name: type === 'OUT' ? (searchClient || 'Client Comptoir') : null,
-      technician_name: technician || 'Technicien'
-    }]);
-
-    onSuccess();
+      onSuccess();
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || 'Erreur MAJ Stock');
+    }
   }
 
   return (
     <form onSubmit={handleConfirm}>
+      {error && (
+        <p style={{ color: 'var(--danger)', marginBottom: '10px' }}>
+          {error}
+        </p>
+      )}
       <p style={{ marginBottom: '15px' }}>
         Mouvement pour : <strong>{item.name}</strong><br/>
         Stock actuel : {item.quantity}
@@ -74,8 +91,8 @@ export default function StockMovementModal({ item, type, onSuccess, onCancel }) 
           <input 
             type="text" 
             placeholder="Rechercher ou taper nom..." 
-            value={searchClient}
-            onChange={(e) => setSearchClient(e.target.value)}
+            value={selectedClient}
+            onChange={(e) => setSelectedClient(e.target.value)}
             list="clients-list"
           />
           <datalist id="clients-list">

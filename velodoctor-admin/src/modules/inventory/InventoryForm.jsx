@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiClient';
 import Button from '../../components/ui/Button';
 
 export default function InventoryForm({ item, onSuccess, onCancel }) {
@@ -12,26 +12,41 @@ export default function InventoryForm({ item, onSuccess, onCancel }) {
     price_buy: item?.price_buy || '',
     price_sell: item?.price_sell || ''
   });
+  const [error, setError] = useState(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
     const payload = { ...formData };
-    
-    let error;
-    if (item?.id) {
-      ({ error } = await supabase.from('inventory_items').update(payload).eq('id', item.id));
-    } else {
-      ({ error } = await supabase.from('inventory_items').insert([payload]));
-    }
 
-    if (error) alert("Erreur sauvegarde");
-    else onSuccess();
+    try {
+      setError(null);
+      if (item?.id) {
+        await apiFetch(`/api/admin/inventory-items/${item.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload)
+        });
+      } else {
+        await apiFetch('/api/admin/inventory-items', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+      }
+      onSuccess();
+    } catch (err) {
+      console.error(err);
+      setError(err?.message || 'Erreur sauvegarde');
+    }
   }
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   return (
     <form onSubmit={handleSubmit}>
+      {error && (
+        <p style={{ color: 'var(--danger)', marginBottom: '10px' }}>
+          {error}
+        </p>
+      )}
       <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Nom de la pièce</label>
       <input name="name" value={formData.name} onChange={handleChange} required placeholder="Ex: Chambre à air 8.5" />
 

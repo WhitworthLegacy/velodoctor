@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiClient';
 import { FileText, Send, CheckCircle, XCircle } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
@@ -20,23 +20,9 @@ export default function QuoteSection({ interventionId, onQuoteUpdate }) {
     try {
       setLoading(true);
       setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from('quotes')
-        .select('*')
-        .eq('intervention_id', interventionId)
-        .single();
-
-      if (fetchError) {
-        if (fetchError.code === 'PGRST116') {
-          // No quote found - this is ok
-          setQuote(null);
-        } else {
-          throw fetchError;
-        }
-      } else {
-        setQuote(data);
-      }
+      const payload = await apiFetch(`/api/admin/quotes?intervention_id=${interventionId}`);
+      const list = payload.quotes || [];
+      setQuote(list.length > 0 ? list[0] : null);
     } catch (err) {
       console.error('Error fetching quote:', err);
       setError(err.message);
@@ -49,22 +35,18 @@ export default function QuoteSection({ interventionId, onQuoteUpdate }) {
     try {
       setActionLoading(true);
       setError(null);
-
-      const { data, error: insertError } = await supabase
-        .from('quotes')
-        .insert([{
+      const payload = await apiFetch('/api/admin/quotes', {
+        method: 'POST',
+        body: JSON.stringify({
           intervention_id: interventionId,
           status: 'draft',
           labor_total: 0,
           parts_total: 0,
           total: 0
-        }])
-        .select()
-        .single();
+        })
+      });
 
-      if (insertError) throw insertError;
-
-      setQuote(data);
+      setQuote(payload.quote || null);
       if (onQuoteUpdate) onQuoteUpdate();
     } catch (err) {
       console.error('Error creating quote:', err);
@@ -89,16 +71,12 @@ export default function QuoteSection({ interventionId, onQuoteUpdate }) {
         updateData.rejected_at = new Date().toISOString();
       }
 
-      const { data, error: updateError } = await supabase
-        .from('quotes')
-        .update(updateData)
-        .eq('id', quote.id)
-        .select()
-        .single();
+      const payload = await apiFetch(`/api/admin/quotes/${quote.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData)
+      });
 
-      if (updateError) throw updateError;
-
-      setQuote(data);
+      setQuote(payload.quote || null);
       if (onQuoteUpdate) onQuoteUpdate();
     } catch (err) {
       console.error('Error updating quote status:', err);

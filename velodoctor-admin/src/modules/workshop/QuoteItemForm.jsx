@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { apiFetch } from '../../lib/apiClient';
 import Button from '../../components/ui/Button';
 
 export default function QuoteItemForm({ quoteId, item, onSuccess, onCancel }) {
@@ -34,13 +34,8 @@ export default function QuoteItemForm({ quoteId, item, onSuccess, onCancel }) {
   async function fetchInventoryItems() {
     try {
       setLoadingInventory(true);
-      const { data, error: fetchError } = await supabase
-        .from('inventory_items')
-        .select('id, name, price_sell, quantity')
-        .order('name', { ascending: true });
-
-      if (fetchError) throw fetchError;
-      setInventoryItems(data || []);
+      const payload = await apiFetch('/api/admin/inventory-items');
+      setInventoryItems(payload.items || []);
     } catch (err) {
       console.error('Error fetching inventory items:', err);
     } finally {
@@ -123,28 +118,16 @@ export default function QuoteItemForm({ quoteId, item, onSuccess, onCancel }) {
       };
 
       if (item?.id) {
-        // Update existing item
-        const { error: updateError } = await supabase
-          .from('quote_items')
-          .update(itemData)
-          .eq('id', item.id);
-
-        if (updateError) throw updateError;
+        await apiFetch(`/api/admin/quote-items/${item.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(itemData)
+        });
       } else {
-        // Insert new item
-        const { error: insertError } = await supabase
-          .from('quote_items')
-          .insert([itemData]);
-
-        if (insertError) throw insertError;
+        await apiFetch(`/api/admin/quotes/${quoteId}/items`, {
+          method: 'POST',
+          body: JSON.stringify(itemData)
+        });
       }
-
-      // Recalculate quote totals
-      const { error: rpcError } = await supabase.rpc('recalc_quote_totals', {
-        p_quote_id: quoteId
-      });
-
-      if (rpcError) throw rpcError;
 
       // Success
       if (onSuccess) onSuccess();
