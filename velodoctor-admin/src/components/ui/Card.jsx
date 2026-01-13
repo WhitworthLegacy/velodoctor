@@ -1,4 +1,4 @@
-export default function Card({ children, onClick, className = '' }) {
+export default function Card({ children, onClick, className = '', style = {} }) {
   const cardStyle = {
     background: 'var(--white)',
     borderRadius: 'var(--radius)',
@@ -8,6 +8,7 @@ export default function Card({ children, onClick, className = '' }) {
     border: '1px solid #eee',
     cursor: onClick ? 'pointer' : 'default',
     transition: 'transform 0.2s ease',
+    ...style,
   };
 
   return (

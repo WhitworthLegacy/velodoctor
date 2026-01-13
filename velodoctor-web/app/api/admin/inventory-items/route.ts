@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await auth.supabase
     .from("inventory_items")
-    .select("*")
+    .select("*, products(cover_image_url, title, slug)")
     .order("name", { ascending: true });
 
   if (error) {

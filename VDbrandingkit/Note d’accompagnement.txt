@@ -1,0 +1,65 @@
+Vous trouverez dans ce fichier ZIP l’ensemble des documents et éléments graphiques pour Velodoctor. Le dossier comprend notamment :
+Le logo dans ses différentes variantes et formats
+Le moodboard, la palette de couleurs et la typographie
+Les éléments graphiques et icônes
+Les applications visuelles (carte de visite, t-shirt, casquette)
+
+
+-------------------------------------------------
+
+IDENTITÉ GRAPHIQUE (PDF)
+
+-------------------------------------------------
+1. Logo (JPG, PNG, PDF, SVG, AI)
+-------------------------------------------------
+
+Logo Principal 
+- Bleu
+- Orange
+
+Logo Slogan
+- Bleu
+- Orange
+
+Logo Monochrome
+- Blanc
+- Noir
+
+Logo Icône
+- Bleu
+- Orange
+
+
+-------------------------------------------------
+2. Moodboard (PDF, JPG)
+-------------------------------------------------
+
+- PDF
+- JPG
+
+-------------------------------------------------
+3. Couleurs (PDF)
+-------------------------------------------------
+4. Typograhie
+-------------------------------------------------
+
+- Poppins lien Google Fonts
+- Poppins Typo (ZIP)
+
+-------------------------------------------------
+5. Éléments Graphiques
+-------------------------------------------------
+
+- Icônes
+
+-------------------------------------------------
+6. Applications visuelles
+-------------------------------------------------
+
+- Carte de visite (PDF, AI)
+- T-Shirt (PDF, JPG)
+- Casquette (PDF, JPG)
+
+
+
+

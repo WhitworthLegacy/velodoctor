@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Package, Plus, ArrowDown, ArrowUp, AlertTriangle, ShoppingCart, Search } from 'lucide-react';
+import { Package, Plus, AlertTriangle, ShoppingCart, Search } from 'lucide-react';
 import { apiFetch } from '../../lib/apiClient';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
-import InventoryForm from './InventoryForm'; // Fichier suivant
-import StockMovementModal from './StockMovementModal'; // Fichier suivant
+import InventoryItemModal from './InventoryItemModal';
 
 export default function InventoryDashboard() {
   const [items, setItems] = useState([]);
@@ -14,10 +13,8 @@ export default function InventoryDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   
   // Modales
-  const [isFormOpen, setIsFormOpen] = useState(false); // Création/Edit
-  const [isMoveOpen, setIsMoveOpen] = useState(false); // Entrée/Sortie
+  const [isItemOpen, setIsItemOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [moveType, setMoveType] = useState('OUT'); // 'IN' ou 'OUT'
 
   useEffect(() => {
     fetchInventory();
@@ -47,12 +44,24 @@ export default function InventoryDashboard() {
   // Articles à commander (Stock <= Seuil)
   const lowStockItems = items.filter(i => i.quantity <= i.min_threshold);
 
+  function getCoverImage(item) {
+    const product = Array.isArray(item.products) ? item.products[0] : item.products;
+    return product?.cover_image_url || null;
+  }
+
+  function formatPrice(value) {
+    if (value == null || value === '') return '—';
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return '—';
+    return `${parsed}€`;
+  }
+
   return (
     <div className="container" style={{ paddingBottom: '100px' }}>
       <header style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1>📦 Stock</h1>
-          <Button onClick={() => { setSelectedItem(null); setIsFormOpen(true); }} style={{ width: 'auto', padding: '8px 12px' }}>
+          <Button onClick={() => { setSelectedItem(null); setIsItemOpen(true); }} style={{ width: 'auto', padding: '8px 12px' }}>
             <Plus size={18} /> Nouveau
           </Button>
         </div>
@@ -93,55 +102,51 @@ export default function InventoryDashboard() {
       )}
 
       {loading ? <p>Chargement...</p> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
           {filteredItems.map(item => (
-            <Card key={item.id} style={{ borderLeft: item.quantity <= item.min_threshold ? '4px solid #EF4444' : '4px solid #10B981' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '16px' }}>{item.name}</h3>
-                  <p style={{ color: 'var(--gray)', fontSize: '12px', margin: '2px 0' }}>Ref: {item.reference || 'N/A'} • Fourn: {item.supplier_name || '?'}</p>
-                  <div style={{ fontWeight: 'bold', fontSize: '18px', color: 'var(--dark)', marginTop: '5px' }}>
-                    Stock : {item.quantity} <span style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 'normal' }}>/ min {item.min_threshold}</span>
-                  </div>
+            <Card
+              key={item.id}
+              onClick={() => { setSelectedItem(item); setIsItemOpen(true); }}
+              style={{
+                borderLeft: item.quantity <= item.min_threshold ? '4px solid #EF4444' : '4px solid #10B981',
+                height: '100%'
+              }}
+            >
+              <div style={{ width: '100%', aspectRatio: '1', background: '#F3F4F6', borderRadius: '12px', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {getCoverImage(item) ? (
+                  <img src={getCoverImage(item)} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <Package size={40} color="#CBD5E1" />
+                )}
+              </div>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>{item.name}</h3>
+              <p style={{ color: 'var(--gray)', fontSize: '12px', margin: '4px 0 8px' }}>
+                Ref: {item.reference || 'N/A'}
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '18px', color: 'var(--dark)' }}>
+                  {formatPrice(item.price_sell)}
                 </div>
-                
-                {/* Actions Rapides */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <button 
-                    onClick={() => { setSelectedItem(item); setMoveType('OUT'); setIsMoveOpen(true); }}
-                    style={{ background: '#FEF3C7', color: '#B45309', border: 'none', borderRadius: '6px', padding: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}
-                  >
-                    <ArrowDown size={14} /> Sortir
-                  </button>
-                  <button 
-                    onClick={() => { setSelectedItem(item); setMoveType('IN'); setIsMoveOpen(true); }}
-                    style={{ background: '#D1FAE5', color: '#065F46', border: 'none', borderRadius: '6px', padding: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}
-                  >
-                    <ArrowUp size={14} /> Entrer
-                  </button>
+                <div style={{ fontSize: '12px', color: 'var(--gray)' }}>
+                  Achat: {formatPrice(item.price_buy)}
                 </div>
+              </div>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: item.quantity <= item.min_threshold ? '#DC2626' : '#10B981' }}>
+                Stock: {item.quantity} / min {item.min_threshold}
               </div>
             </Card>
           ))}
         </div>
       )}
 
-      {/* Modale Création / Édition */}
-      <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title="Fiche Article">
-        <InventoryForm 
-          item={selectedItem} 
-          onSuccess={() => { setIsFormOpen(false); fetchInventory(); }} 
-          onCancel={() => setIsFormOpen(false)} 
-        />
-      </Modal>
-
-      {/* Modale Mouvement (Entrée/Sortie) */}
-      <Modal isOpen={isMoveOpen} onClose={() => setIsMoveOpen(false)} title={moveType === 'IN' ? "📦 Réception Stock" : "🔧 Sortie Atelier"}>
-        <StockMovementModal
+      <Modal
+        isOpen={isItemOpen}
+        onClose={() => setIsItemOpen(false)}
+        title={selectedItem ? 'Fiche article' : 'Nouvel article'}
+      >
+        <InventoryItemModal
           item={selectedItem}
-          type={moveType}
-          onSuccess={() => { setIsMoveOpen(false); fetchInventory(); }}
-          onCancel={() => setIsMoveOpen(false)}
+          onSaved={() => { setIsItemOpen(false); fetchInventory(); }}
         />
       </Modal>
     </div>
