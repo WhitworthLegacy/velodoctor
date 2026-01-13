@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Camera, X } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { apiFetch } from '../../lib/apiClient';
 import Button from '../../components/ui/Button';
 
@@ -19,31 +18,15 @@ export default function VehicleSheet({ intervention, onClose }) {
       const file = e.target.files[0];
       if (!file) return;
 
-      // 1. Upload vers Supabase Storage
-      const fileName = `${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage
-        .from('photos')
-        .upload(fileName, file);
+      const formData = new FormData();
+      formData.append('file', file);
 
-      if (error) throw error;
-
-      // 2. Récupérer l'URL publique
-      const { data: publicUrlData } = supabase.storage
-        .from('photos')
-        .getPublicUrl(fileName);
-      
-      const newPhotoUrl = publicUrlData.publicUrl;
-
-      // 3. Sauvegarder l'URL dans la table 'interventions' (SQL)
-      // On ajoute la nouvelle URL au tableau existant
-      const newPhotosList = [...photos, newPhotoUrl];
-      
-      await apiFetch(`/api/admin/interventions/${intervention.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ photos_before: newPhotosList })
+      const payload = await apiFetch(`/api/admin/interventions/${intervention.id}/photos`, {
+        method: 'POST',
+        body: formData
       });
 
-      setPhotos(newPhotosList); // Mettre à jour l'affichage
+      setPhotos(payload.photos || []); // Mettre à jour l'affichage
       alert("Photo ajoutée !");
 
     } catch (error) {
