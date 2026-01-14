@@ -9,8 +9,16 @@ export const generateStaticParams = () =>
     slug: normalizeSlug(page.slug).split("/"),
   }));
 
-export const generateMetadata = ({ params }) => {
-  const slug = params.slug.join("/");
+const resolveSlugParts = async (params) => {
+  const p = await params;
+  if (Array.isArray(p?.slug)) return p.slug.map((part) => String(part));
+  if (p?.slug != null) return [String(p.slug)];
+  return [];
+};
+
+export const generateMetadata = async ({ params }) => {
+  const slugParts = await resolveSlugParts(params);
+  const slug = slugParts.join("/");
   const page = getSeoPage(slug);
   if (!page) return {};
   return {
@@ -28,8 +36,9 @@ const isArticleSlug = (value) => {
   return candidate.startsWith("blog/") || candidate.startsWith("nl/blog/");
 };
 
-export default function SeoPage({ params }) {
-  const slug = params.slug.join("/");
+export default async function SeoPage({ params }) {
+  const slugParts = await resolveSlugParts(params);
+  const slug = slugParts.join("/");
   const page = getSeoPage(slug);
 
   if (!page) {
