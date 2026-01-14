@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Package } from 'lucide-react';
 import { apiFetch } from '../../lib/apiClient';
 import Button from '../../components/ui/Button';
+import { deleteInventoryItemById } from '../../lib/adminApi';
 
 const EMPTY_FORM = {
   name: '',
@@ -43,6 +44,7 @@ export default function InventoryItemModal({ item, onSaved }) {
   const [formData, setFormData] = useState(() => toFormValues(item));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [movementQty, setMovementQty] = useState(1);
   const [movementType, setMovementType] = useState('OUT');
@@ -233,6 +235,38 @@ export default function InventoryItemModal({ item, onSaved }) {
               <Button type="submit" disabled={saving}>
                 {saving ? 'Sauvegarde...' : isNew ? 'Creer' : 'Enregistrer'}
               </Button>
+              {!isNew && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!item?.id) return;
+                    if (!confirm('Supprimer définitivement ce produit ?')) return;
+                    setDeleting(true);
+                    try {
+                      await deleteInventoryItemById(item.id);
+                      onSaved?.();
+                    } catch (err) {
+                      console.error(err);
+                      setError(err?.message || 'Erreur suppression');
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                  disabled={deleting}
+                  style={{
+                    background: '#EF4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 14px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                  }}
+                >
+                  {deleting ? 'Suppression...' : 'Supprimer le produit'}
+                </button>
+              )}
               <div style={{ fontSize: '12px', color: 'var(--gray)' }}>
                 Achat: {formatPrice(formData.price_buy)} • Vente: {formatPrice(formData.price_sell)}
               </div>

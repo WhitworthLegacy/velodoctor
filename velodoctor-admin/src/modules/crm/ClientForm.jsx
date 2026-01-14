@@ -1,20 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { User, Phone, Mail, MapPin, Activity, CheckSquare, Cloud, Loader2, Archive } from 'lucide-react';
 import Button from '../../components/ui/Button';
+import { mergeChecklistsWithDefaults } from '../../lib/checklists';
 
 export default function ClientForm({ client, availableStages, onSave, onCancel, onArchive }) {
-  
-  // Configuration par défaut (structure idéale)
-  const defaultChecklists = {
-    diagnostic: { title: "🔍 Diagnostic / التشخيص", items: [{ id: 'd1', label: "Identifier les problèmes", checked: false }, { id: 'd2', label: "Prendre des photos", checked: false }] },
-    devis: { title: "💰 Devis / عرض سعر", items: [{ id: 'q1', label: "Devis créé", checked: false }, { id: 'q2', label: "Devis Validé/Refusé", checked: false }] },
-    reparation: { title: "🛠️ Réparation / بصلح", items: [{ id: 'r1', label: "En attente de pièces", checked: false }, { id: 'r2', label: "Réparé", checked: false }] },
-    controle: { title: "✅ Contrôle final / السيطرة النهائية", items: [{ id: 'c1', label: "Tester le véhicule", checked: false }, { id: 'c2', label: "Nettoyage rapide", checked: false }] },
-    livraison: { title: "📦 Prêt / جاهز للتسليم", items: [{ id: 'l1', label: "Client prévenu", checked: false }, { id: 'l2', label: "Véhicule disponible", checked: false }] }
-  };
-
   const [formData, setFormData] = useState({
-    full_name: '', phone: '', email: '', address: '', vehicle_info: '', crm_stage: '', notes: '', checklists: defaultChecklists 
+    full_name: '',
+    phone: '',
+    email: '',
+    address: '',
+    vehicle_info: '',
+    crm_stage: '',
+    notes: '',
+    checklists: mergeChecklistsWithDefaults(),
   });
   const [saveStatus, setSaveStatus] = useState('idle');
   const isReadyToSave = useRef(false);
@@ -23,17 +21,6 @@ export default function ClientForm({ client, availableStages, onSave, onCancel, 
     isReadyToSave.current = false;
 
     if (client) {
-      // SÉCURITÉ : On fusionne les checklists du client avec celles par défaut
-      // Si une catégorie manque dans le client, on prend celle par défaut pour éviter le crash
-      let safeChecklists = { ...defaultChecklists };
-      if (client.checklists && typeof client.checklists === 'object') {
-        Object.keys(defaultChecklists).forEach(key => {
-          if (client.checklists[key]) {
-            safeChecklists[key] = client.checklists[key];
-          }
-        });
-      }
-
       setFormData({
         full_name: client.full_name || '',
         phone: client.phone || '',
@@ -42,10 +29,14 @@ export default function ClientForm({ client, availableStages, onSave, onCancel, 
         vehicle_info: client.vehicle_info || '',
         crm_stage: client.crm_stage || (availableStages && availableStages.length > 0 ? availableStages[0].slug : ''),
         notes: client.notes || '',
-        checklists: safeChecklists
+        checklists: mergeChecklistsWithDefaults(client.checklists),
       });
     } else {
-       setFormData(prev => ({ ...prev, crm_stage: (availableStages && availableStages.length > 0 ? availableStages[0].slug : '') }));
+      setFormData(prev => ({
+        ...prev,
+        crm_stage: (availableStages && availableStages.length > 0 ? availableStages[0].slug : ''),
+        checklists: mergeChecklistsWithDefaults(),
+      }));
     }
     const timer = setTimeout(() => { isReadyToSave.current = true; }, 500);
 

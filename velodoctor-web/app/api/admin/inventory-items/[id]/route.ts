@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireStaff } from "@/lib/adminAuth";
+import { requireAdmin, requireStaff } from "@/lib/adminAuth";
 import { applyCors } from "@/lib/cors";
 
 export async function OPTIONS() {
@@ -54,4 +54,27 @@ export async function PATCH(
   }
 
   return applyCors(NextResponse.json({ item: data }));
+}
+
+export async function DELETE(
+  request: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const { id } = await ctx.params;
+  const auth = await requireAdmin(request);
+  if ("error" in auth) {
+    return auth.error;
+  }
+
+  const { error } = await auth.supabase
+    .from("inventory_items")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("[admin] inventory item delete failed:", error);
+    return applyCors(NextResponse.json({ error: "Failed to delete inventory item" }, { status: 500 }));
+  }
+
+  return applyCors(NextResponse.json({ success: true }));
 }

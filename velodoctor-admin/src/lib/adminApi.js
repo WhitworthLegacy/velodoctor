@@ -27,3 +27,9 @@ export async function deleteClientById(clientId) {
     method: 'DELETE',
   });
 }
+
+export async function deleteInventoryItemById(itemId) {
+  return apiFetch(`/api/admin/inventory-items/${itemId}`, {
+    method: 'DELETE',
+  });
+}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Camera } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { apiFetch } from '../../lib/apiClient';
+import { mergeChecklistsWithDefaults } from '../../lib/checklists';
 
 export default function CrmCardModal({
   open,
@@ -18,13 +19,13 @@ export default function CrmCardModal({
   isAdmin = false,
 }) {
   const [noteDraft, setNoteDraft] = useState('');
-  const [checklists, setChecklists] = useState({});
+  const [checklists, setChecklists] = useState(() => mergeChecklistsWithDefaults());
   const [hiddenSections, setHiddenSections] = useState({});
   const [photos, setPhotos] = useState([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
-    setChecklists(client?.checklists || {});
+    setChecklists(mergeChecklistsWithDefaults(client?.checklists));
     setHiddenSections({});
     setPhotos(client?.crm_photos || []);
   }, [client]);

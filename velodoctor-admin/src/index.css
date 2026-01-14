@@ -76,6 +76,10 @@ input:focus {
 
 .hidden { display: none; }
 
+.container.inventory-container {
+  max-width: 1200px;
+}
+
 .inventory-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

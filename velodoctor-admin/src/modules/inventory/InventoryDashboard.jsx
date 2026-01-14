@@ -6,6 +6,8 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import InventoryItemModal from './InventoryItemModal';
 
+let inventoryCache = null;
+
 export default function InventoryDashboard() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,16 +22,25 @@ export default function InventoryDashboard() {
     fetchInventory();
   }, []);
 
-  async function fetchInventory() {
+  async function fetchInventory(force = false) {
+    if (!force && inventoryCache) {
+      setItems(inventoryCache);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       const payload = await apiFetch('/api/admin/inventory-items');
-      setItems(payload.items || []);
+      const nextItems = payload.items || [];
+      inventoryCache = nextItems;
+      setItems(nextItems);
     } catch (err) {
       console.error(err);
       setError(err?.message || 'Erreur chargement stock');
-      setItems([]);
+      setItems(inventoryCache || []);
     } finally {
       setLoading(false);
     }
@@ -57,7 +68,7 @@ export default function InventoryDashboard() {
   }
 
   return (
-    <div className="container" style={{ paddingBottom: '100px' }}>
+    <div className="container inventory-container" style={{ paddingBottom: '100px' }}>
       <header style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1>📦 Stock</h1>
@@ -146,7 +157,7 @@ export default function InventoryDashboard() {
       >
         <InventoryItemModal
           item={selectedItem}
-          onSaved={() => { setIsItemOpen(false); fetchInventory(); }}
+          onSaved={() => { setIsItemOpen(false); fetchInventory(true); }}
         />
       </Modal>
     </div>
