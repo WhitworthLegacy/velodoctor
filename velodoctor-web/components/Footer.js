@@ -30,6 +30,12 @@ export default function Footer() {
               <Link href="/booking" className="hover:opacity-80 transition">Rendez-vous</Link>
               <Link href="/shop" className="hover:opacity-80 transition">Boutique</Link>
               <Link href="/blog" className="hover:opacity-80 transition">Blog</Link>
+              <Link href="/reparation-velo-electrique-bruxelles" className="hover:opacity-80 transition">
+                Bruxelles
+              </Link>
+              <Link href="/qui-sommes-nous" className="hover:opacity-80 transition">
+                Qui sommes-nous
+              </Link>
               <Link href="/contact" className="hover:opacity-80 transition">Contact</Link>
               <Link href="/zones" className="hover:opacity-80 transition">Zones desservies</Link>
             </div>

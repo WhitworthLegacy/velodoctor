@@ -12,7 +12,7 @@ function toUiFromDb(db) {
     slug: db.slug,
     title: db.title,
     description: db.description,
-    cover_image_url: db.cover_image_url,
+    coverImageUrl: db.cover_image_url,
     price: db.inventory_items?.price_sell ?? null,
     inStock: (db.inventory_items?.quantity ?? 0) > 0,
     features: [],
@@ -107,8 +107,17 @@ export default async function ProductPage({ params }) {
       <Section spacing="default" background="white">
         <div className="grid md:grid-cols-2 gap-12">
           <div>
-            <div className="aspect-square bg-vdSurface rounded-2xl flex items-center justify-center sticky top-24">
-              <ShoppingBag className="w-32 h-32 text-gray-300" />
+            <div className="aspect-square bg-vdSurface rounded-2xl flex items-center justify-center overflow-hidden sticky top-24">
+              {product.coverImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={product.coverImageUrl}
+                  alt={product.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <ShoppingBag className="w-32 h-32 text-gray-300" />
+              )}
             </div>
           </div>
 

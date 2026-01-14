@@ -24,6 +24,9 @@ export default function Header() {
             <Link href="/services" className="text-sm font-medium text-gray-600 hover:text-vdPrimary transition">
               Services
             </Link>
+            <Link href="/qui-sommes-nous" className="text-sm font-medium text-gray-600 hover:text-vdPrimary transition">
+              Qui sommes-nous
+            </Link>
             <Link href="/shop" className="text-sm font-medium text-gray-600 hover:text-vdPrimary transition">
               Boutique
             </Link>

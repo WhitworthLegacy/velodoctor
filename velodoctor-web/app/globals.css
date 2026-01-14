@@ -111,3 +111,16 @@ p {
   background-color: var(--vd-accent);
   color: white;
 }
+
+.seo-content p + p {
+  margin-top: 1rem;
+}
+
+.seo-content ul {
+  margin-top: 1rem;
+  margin-left: 1.25rem;
+}
+
+.seo-content li + li {
+  margin-top: 0.5rem;
+}
