@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Package, Plus, AlertTriangle, ShoppingCart, Search } from 'lucide-react';
-import { apiFetch } from '../../lib/apiClient';
+import { apiFetch, getDataVersion } from '../../lib/apiClient';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import InventoryItemModal from './InventoryItemModal';
 
-let inventoryCache = null;
+let inventoryCache = { data: null, version: 0 };
 
 export default function InventoryDashboard() {
   const [items, setItems] = useState([]);
@@ -22,9 +22,20 @@ export default function InventoryDashboard() {
     fetchInventory();
   }, []);
 
+  useEffect(() => {
+    const handleDataChange = () => {
+      inventoryCache = { data: null, version: getDataVersion() };
+      fetchInventory(true);
+    };
+
+    window.addEventListener('admin-data-changed', handleDataChange);
+    return () => window.removeEventListener('admin-data-changed', handleDataChange);
+  }, []);
+
   async function fetchInventory(force = false) {
-    if (!force && inventoryCache) {
-      setItems(inventoryCache);
+    const dataVersion = getDataVersion();
+    if (!force && inventoryCache.data && inventoryCache.version === dataVersion) {
+      setItems(inventoryCache.data);
       setLoading(false);
       setError(null);
       return;
@@ -35,7 +46,7 @@ export default function InventoryDashboard() {
       setError(null);
       const payload = await apiFetch('/api/admin/inventory-items');
       const nextItems = payload.items || [];
-      inventoryCache = nextItems;
+      inventoryCache = { data: nextItems, version: dataVersion };
       setItems(nextItems);
     } catch (err) {
       console.error(err);

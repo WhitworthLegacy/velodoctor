@@ -8,7 +8,7 @@ import fr from 'date-fns/locale/fr';
 import 'react-big-calendar/lib/css/react-big-calendar.css'; // Le style du calendrier
 import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
-import { apiFetch } from '../../lib/apiClient';
+import { apiFetch, getDataVersion } from '../../lib/apiClient';
 
 // Configuration de la langue française pour le calendrier
 const locales = {
@@ -23,7 +23,7 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-let planningCache = null;
+let planningCache = { data: null, version: 0 };
 
 export default function PlanningDashboard() {
   const [events, setEvents] = useState([]);
@@ -38,9 +38,20 @@ export default function PlanningDashboard() {
     fetchAdminStatus();
   }, []);
 
+  useEffect(() => {
+    const handleDataChange = () => {
+      planningCache = { data: null, version: getDataVersion() };
+      fetchData(true);
+    };
+
+    window.addEventListener('admin-data-changed', handleDataChange);
+    return () => window.removeEventListener('admin-data-changed', handleDataChange);
+  }, []);
+
   async function fetchData(force = false) {
-    if (!force && planningCache) {
-      setEvents(planningCache);
+    const dataVersion = getDataVersion();
+    if (!force && planningCache.data && planningCache.version === dataVersion) {
+      setEvents(planningCache.data);
       setLoading(false);
       setError(null);
       return;
@@ -80,7 +91,7 @@ export default function PlanningDashboard() {
       }));
 
       const nextEvents = [...logisticsEvents, ...workshopEvents];
-      planningCache = nextEvents;
+      planningCache = { data: nextEvents, version: dataVersion };
       setEvents(nextEvents);
       setError(null);
     } catch (fetchError) {
@@ -129,6 +140,102 @@ export default function PlanningDashboard() {
     }
   };
 
+  const eventEditableFields = selectedEvent
+    ? selectedEvent.type === 'logistics'
+      ? [
+          {
+            name: 'scheduled_at',
+            label: 'Date',
+            type: 'datetime-local',
+            value: toLocalInputValue(selectedEvent.appointment?.scheduled_at),
+          },
+          {
+            name: 'status',
+            label: 'Statut',
+            type: 'select',
+            value: selectedEvent.appointment?.status || 'pending',
+            options: [
+              { value: 'pending', label: 'En attente' },
+              { value: 'confirmed', label: 'Confirmé' },
+              { value: 'in_transit', label: 'En transit' },
+              { value: 'done', label: 'Terminé' },
+              { value: 'cancelled', label: 'Annulé' },
+            ],
+          },
+          {
+            name: 'service_type',
+            label: 'Service',
+            type: 'select',
+            value: selectedEvent.appointment?.service_type || 'collecte',
+            options: [
+              { value: 'collecte', label: 'Collecte' },
+              { value: 'depot_atelier', label: 'Dépôt atelier' },
+            ],
+          },
+          {
+            name: 'address',
+            label: 'Adresse',
+            type: 'text',
+            value: selectedEvent.appointment?.address || selectedEvent.appointment?.clients?.address || '',
+          },
+          {
+            name: 'message',
+            label: 'Message',
+            type: 'textarea',
+            value: selectedEvent.appointment?.message || '',
+          },
+        ]
+      : [
+          {
+            name: 'status',
+            label: 'Statut atelier',
+            type: 'select',
+            value: selectedEvent.intervention?.status || 'diagnosing',
+            options: [
+              { value: 'diagnosing', label: 'Diagnostic' },
+              { value: 'quote_sent', label: 'Devis envoyé' },
+              { value: 'approved', label: 'Devis validé' },
+              { value: 'repairing', label: 'Réparation' },
+              { value: 'ready', label: 'Prêt' },
+              { value: 'done', label: 'Terminé' },
+            ],
+          },
+        ]
+    : [];
+
+  const handleSaveEvent = async (draft) => {
+    if (!selectedEvent) return;
+    if (selectedEvent.type === 'logistics') {
+      const apt = selectedEvent.appointment || {};
+      const payload = {
+        status: draft.status || apt.status,
+        service_type: draft.service_type || apt.service_type,
+        address: draft.address || null,
+        message: draft.message || null,
+      };
+
+      if (draft.scheduled_at) {
+        const nextDate = new Date(draft.scheduled_at);
+        if (!Number.isNaN(nextDate.getTime())) {
+          payload.scheduled_at = nextDate.toISOString();
+        }
+      }
+
+      await apiFetch(`/api/admin/appointments/${apt.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+    } else {
+      const intervention = selectedEvent.intervention || {};
+      await apiFetch(`/api/admin/interventions/${intervention.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: draft.status }),
+      });
+    }
+
+    await fetchData(true);
+  };
+
   return (
     <div className="container" style={{ height: '85vh', display: 'flex', flexDirection: 'column' }}>
       <header style={{ marginBottom: '15px' }}>
@@ -172,6 +279,8 @@ export default function PlanningDashboard() {
         onClose={() => setDetailsOpen(false)}
         title={selectedEvent?.type === 'workshop' ? 'Détails atelier' : 'Détails rendez-vous'}
         sections={getEventSections(selectedEvent)}
+        editableFields={eventEditableFields}
+        onSave={handleSaveEvent}
         isAdmin={isAdmin && selectedEvent?.type === 'logistics'}
         onDelete={selectedEvent?.type === 'logistics' ? () => handleDeleteAppointment(selectedEvent) : null}
         deleteLabel="Supprimer le RDV"
@@ -216,4 +325,12 @@ function formatDate(value) {
         timeStyle: 'short',
       })
     : '—';
+}
+
+function toLocalInputValue(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (v) => String(v).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }

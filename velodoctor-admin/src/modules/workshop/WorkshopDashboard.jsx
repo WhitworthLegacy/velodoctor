@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { apiFetch } from '../../lib/apiClient';
+import { apiFetch, getDataVersion } from '../../lib/apiClient';
 import WorkshopCard from './WorkshopCard';
 import Modal from '../../components/ui/Modal';
 import QuoteForm from './QuoteForm';
 import VehicleSheet from './VehicleSheet'; // 👈 Import du nouveau composant
 import { Automation } from '../../lib/automation';
 
-let workshopCache = null;
+let workshopCache = { data: null, version: 0 };
 
 export default function WorkshopDashboard() {
   const [interventions, setInterventions] = useState([]);
@@ -22,9 +22,20 @@ export default function WorkshopDashboard() {
     fetchInterventions();
   }, []);
 
+  useEffect(() => {
+    const handleDataChange = () => {
+      workshopCache = { data: null, version: getDataVersion() };
+      fetchInterventions(true);
+    };
+
+    window.addEventListener('admin-data-changed', handleDataChange);
+    return () => window.removeEventListener('admin-data-changed', handleDataChange);
+  }, []);
+
   async function fetchInterventions(force = false) {
-    if (!force && workshopCache) {
-      setInterventions(workshopCache);
+    const dataVersion = getDataVersion();
+    if (!force && workshopCache.data && workshopCache.version === dataVersion) {
+      setInterventions(workshopCache.data);
       setLoading(false);
       setError(null);
       return;
@@ -35,7 +46,7 @@ export default function WorkshopDashboard() {
       setError(null);
       const payload = await apiFetch('/api/admin/interventions');
       const nextInterventions = payload.interventions || [];
-      workshopCache = nextInterventions;
+      workshopCache = { data: nextInterventions, version: dataVersion };
       setInterventions(nextInterventions);
     } catch (err) {
       console.error(err);

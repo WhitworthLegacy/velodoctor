@@ -3,9 +3,9 @@ import { Users, Phone, Mail, MapPin, Search } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
-import { apiFetch } from '../../lib/apiClient';
+import { apiFetch, getDataVersion } from '../../lib/apiClient';
 
-let clientListCache = null;
+let clientListCache = { data: null, version: 0 };
 
 export default function ClientList() {
   const [clients, setClients] = useState([]);
@@ -23,9 +23,20 @@ export default function ClientList() {
     fetchAdminStatus();
   }, []);
 
+  useEffect(() => {
+    const handleDataChange = () => {
+      clientListCache = { data: null, version: getDataVersion() };
+      fetchClients(true);
+    };
+
+    window.addEventListener('admin-data-changed', handleDataChange);
+    return () => window.removeEventListener('admin-data-changed', handleDataChange);
+  }, []);
+
   async function fetchClients(force = false) {
-    if (!force && clientListCache) {
-      setClients(clientListCache);
+    const dataVersion = getDataVersion();
+    if (!force && clientListCache.data && clientListCache.version === dataVersion) {
+      setClients(clientListCache.data);
       setLoading(false);
       setError(null);
       return;
@@ -34,7 +45,7 @@ export default function ClientList() {
     try {
       const payload = await apiFetch('/api/admin/clients');
       const nextClients = payload.clients || [];
-      clientListCache = nextClients;
+      clientListCache = { data: nextClients, version: dataVersion };
       setClients(nextClients);
       setError(null);
     } catch (err) {
@@ -120,6 +131,35 @@ export default function ClientList() {
     client.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.phone?.includes(searchTerm)
   );
+
+  const clientEditableFields = selectedClient
+    ? [
+        { name: 'full_name', label: 'Nom', type: 'text', value: selectedClient.full_name || '' },
+        { name: 'phone', label: 'Téléphone', type: 'text', value: selectedClient.phone || '' },
+        { name: 'email', label: 'Email', type: 'text', value: selectedClient.email || '' },
+        { name: 'address', label: 'Adresse', type: 'text', value: selectedClient.address || '' },
+        { name: 'vehicle_info', label: 'Véhicule', type: 'text', value: selectedClient.vehicle_info || '' },
+        { name: 'notes', label: 'Notes', type: 'textarea', value: selectedClient.notes || '' },
+        { name: 'crm_stage', label: 'Stage CRM', type: 'text', value: selectedClient.crm_stage || '' },
+      ]
+    : [];
+
+  const handleSaveClient = async (draft) => {
+    if (!selectedClient?.id) return;
+    await apiFetch(`/api/admin/clients/${selectedClient.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        full_name: draft.full_name || null,
+        phone: draft.phone || null,
+        email: draft.email || null,
+        address: draft.address || null,
+        vehicle_info: draft.vehicle_info || null,
+        notes: draft.notes || null,
+        crm_stage: draft.crm_stage || null,
+      }),
+    });
+    fetchClients(true);
+  };
 
   return (
     <div className="container">
@@ -213,6 +253,8 @@ export default function ClientList() {
           { label: 'Véhicule', value: selectedClient?.vehicle_info },
           { label: 'Rendez-vous', value: appointmentList },
         ]}
+        editableFields={clientEditableFields}
+        onSave={handleSaveClient}
       />
     </div>
   );

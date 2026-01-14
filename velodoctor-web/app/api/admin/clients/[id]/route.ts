@@ -5,6 +5,26 @@ import { applyCors } from '@/lib/cors';
 const LOGISTICS_STAGE = 'missions';
 const WORKSHOP_STAGE = 'atelier';
 
+function normalizeStage(value?: string | null) {
+  return (value || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+}
+
+function isLogisticsStage(value?: string | null) {
+  const normalized = normalizeStage(value);
+  return normalized === LOGISTICS_STAGE || (normalized.includes('mission') && normalized.includes('logist'));
+}
+
+function isWorkshopStage(value?: string | null) {
+  const normalized = normalizeStage(value);
+  return normalized === WORKSHOP_STAGE || normalized.includes('atelier') || normalized.includes('workshop');
+}
+
 function normalizeVehicleInfo(value?: string | null) {
   const raw = (value || '').trim();
   if (!raw) return { brand: null, model: null };
@@ -193,11 +213,11 @@ export async function PATCH(
   const stageChanged = Boolean(updatedStage) && updatedStage !== previousStage;
   const clientSnapshot = data || existingClient;
 
-  if (stageChanged && updatedStage === LOGISTICS_STAGE) {
+  if (stageChanged && isLogisticsStage(updatedStage)) {
     await ensureLogisticsAppointment(auth.supabase, id, clientSnapshot);
   }
 
-  if (stageChanged && updatedStage === WORKSHOP_STAGE) {
+  if (stageChanged && isWorkshopStage(updatedStage)) {
     await ensureWorkshopIntervention(auth.supabase, id, clientSnapshot);
   }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { supabase } from './lib/supabase';
+import { supabase, clearSupabaseAuthStorage } from './lib/supabase';
 import { ROLES } from './lib/constants';
 import { fetchUserRole } from './lib/adminApi';
 import InventoryDashboard from './modules/inventory/InventoryDashboard'; // AJOUT
@@ -22,13 +22,29 @@ function App() {
   const [session, setSession] = useState(null);
   const [userRole, setUserRole] = useState(null); // Stocke le rôle
   const [loading, setLoading] = useState(true);
+  const sessionTimeoutMs = 5000;
 
   useEffect(() => {
     window.supabase = supabase;
+    const safetyTimeout = setTimeout(async () => {
+      if (!loading) return;
+      console.warn('[auth] safety timeout triggered, resetting session');
+      clearSupabaseAuthStorage();
+      await supabase.auth.signOut();
+      setSession(null);
+      setUserRole(null);
+      setLoading(false);
+    }, 7000);
+
     // 1. Récupérer session + rôle
     const getSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Session timeout')), sessionTimeoutMs)
+          ),
+        ]);
         if (import.meta.env.DEV) {
           console.info('[auth] session fetched', { hasSession: Boolean(session) });
         }
@@ -40,6 +56,9 @@ function App() {
         }
       } catch (error) {
         console.error('[auth] session fetch failed', error);
+        clearSupabaseAuthStorage();
+        await supabase.auth.signOut();
+        setSession(null);
         setLoading(false);
       }
     };
@@ -54,11 +73,16 @@ function App() {
       setSession(session);
       if (session) {
         await resolveUserRole();
+      } else {
+        setUserRole(null);
       }
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Fonction pour récupérer le rôle dans la table 'profiles' (si elle existe)
@@ -72,11 +96,10 @@ function App() {
       setUserRole(role || null);
     } catch (e) {
       console.error(e);
-      const status = e?.status;
-      if (status === 401 || status === 403) {
-        await supabase.auth.signOut();
-        setSession(null);
-      }
+      clearSupabaseAuthStorage();
+      await supabase.auth.signOut();
+      setSession(null);
+      setUserRole(null);
     } finally {
       setLoading(false);
     }

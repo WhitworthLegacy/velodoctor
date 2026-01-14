@@ -17,3 +17,15 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     detectSessionInUrl: true,
   },
 });
+
+export function clearSupabaseAuthStorage() {
+  if (typeof window === 'undefined') return;
+  const keys = [];
+  for (let i = 0; i < window.localStorage.length; i += 1) {
+    const key = window.localStorage.key(i);
+    if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+      keys.push(key);
+    }
+  }
+  keys.forEach((key) => window.localStorage.removeItem(key));
+}

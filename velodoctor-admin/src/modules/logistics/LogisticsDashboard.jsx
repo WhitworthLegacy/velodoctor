@@ -3,9 +3,9 @@ import AppointmentCard from './AppointmentCard';
 import { Automation } from '../../lib/automation';
 import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
-import { apiFetch } from '../../lib/apiClient';
+import { apiFetch, getDataVersion } from '../../lib/apiClient';
 
-let logisticsCache = null;
+let logisticsCache = { data: null, version: 0 };
 
 export default function LogisticsDashboard() {
   const [appointments, setAppointments] = useState([]);
@@ -20,9 +20,20 @@ export default function LogisticsDashboard() {
     fetchAdminStatus();
   }, []);
 
+  useEffect(() => {
+    const handleDataChange = () => {
+      logisticsCache = { data: null, version: getDataVersion() };
+      fetchAppointments(true);
+    };
+
+    window.addEventListener('admin-data-changed', handleDataChange);
+    return () => window.removeEventListener('admin-data-changed', handleDataChange);
+  }, []);
+
   async function fetchAppointments(force = false) {
-    if (!force && logisticsCache) {
-      setAppointments(logisticsCache);
+    const dataVersion = getDataVersion();
+    if (!force && logisticsCache.data && logisticsCache.version === dataVersion) {
+      setAppointments(logisticsCache.data);
       setLoading(false);
       setError(null);
       return;
@@ -32,7 +43,7 @@ export default function LogisticsDashboard() {
       setLoading(true);
       const payload = await apiFetch('/api/admin/appointments');
       const nextAppointments = payload.appointments || [];
-      logisticsCache = nextAppointments;
+      logisticsCache = { data: nextAppointments, version: dataVersion };
       setAppointments(nextAppointments);
     } catch (err) {
       console.error("Erreur de chargement:", err);
@@ -110,6 +121,75 @@ export default function LogisticsDashboard() {
       ]
     : [];
 
+  const appointmentEditableFields = selectedAppointment
+    ? [
+        {
+          name: 'scheduled_at',
+          label: 'Date',
+          type: 'datetime-local',
+          value: toLocalInputValue(selectedAppointment.scheduled_at),
+        },
+        {
+          name: 'status',
+          label: 'Statut',
+          type: 'select',
+          value: selectedAppointment.status || 'pending',
+          options: [
+            { value: 'pending', label: 'En attente' },
+            { value: 'confirmed', label: 'Confirmé' },
+            { value: 'in_transit', label: 'En transit' },
+            { value: 'done', label: 'Terminé' },
+            { value: 'cancelled', label: 'Annulé' },
+          ],
+        },
+        {
+          name: 'service_type',
+          label: 'Service',
+          type: 'select',
+          value: selectedAppointment.service_type || 'collecte',
+          options: [
+            { value: 'collecte', label: 'Collecte' },
+            { value: 'depot_atelier', label: 'Dépôt atelier' },
+          ],
+        },
+        {
+          name: 'address',
+          label: 'Adresse',
+          type: 'text',
+          value: selectedAppointment.address || selectedAppointment.clients?.address || '',
+        },
+        {
+          name: 'message',
+          label: 'Message',
+          type: 'textarea',
+          value: selectedAppointment.message || '',
+        },
+      ]
+    : [];
+
+  const handleSaveAppointment = async (draft) => {
+    if (!selectedAppointment?.id) return;
+    const payload = {
+      status: draft.status || selectedAppointment.status,
+      service_type: draft.service_type || selectedAppointment.service_type,
+      address: draft.address || null,
+      message: draft.message || null,
+    };
+
+    if (draft.scheduled_at) {
+      const nextDate = new Date(draft.scheduled_at);
+      if (!Number.isNaN(nextDate.getTime())) {
+        payload.scheduled_at = nextDate.toISOString();
+      }
+    }
+
+    await apiFetch(`/api/admin/appointments/${selectedAppointment.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    fetchAppointments(true);
+  };
+
   return (
     <div className="container">
       <header style={{ marginBottom: '20px' }}>
@@ -147,9 +227,19 @@ export default function LogisticsDashboard() {
         onClose={() => setDetailsOpen(false)}
         title="Détails du rendez-vous"
         sections={appointmentSections}
+        editableFields={appointmentEditableFields}
+        onSave={handleSaveAppointment}
         isAdmin={isAdmin}
         onDelete={handleDelete}
       />
     </div>
   );
+}
+
+function toLocalInputValue(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (v) => String(v).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }

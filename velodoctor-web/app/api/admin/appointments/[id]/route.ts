@@ -63,11 +63,6 @@ export async function PATCH(
   }
 
   const body = await request.json().catch(() => ({}));
-  const status = body?.status;
-  if (!status) {
-    return applyCors(NextResponse.json({ error: "Missing status" }, { status: 400 }));
-  }
-
   const allowedStatuses = new Set([
     "pending",
     "confirmed",
@@ -76,13 +71,36 @@ export async function PATCH(
     "cancelled",
   ]);
 
-  if (!allowedStatuses.has(status)) {
-    return applyCors(NextResponse.json({ error: "Invalid status" }, { status: 400 }));
+  const updatePayload: Record<string, any> = {};
+
+  if (body.status) {
+    if (!allowedStatuses.has(body.status)) {
+      return applyCors(NextResponse.json({ error: "Invalid status" }, { status: 400 }));
+    }
+    updatePayload.status = body.status;
+  }
+
+  if (body.scheduled_at) {
+    const scheduledAt = new Date(body.scheduled_at);
+    if (Number.isNaN(scheduledAt.getTime())) {
+      return applyCors(NextResponse.json({ error: "Invalid scheduled_at" }, { status: 400 }));
+    }
+    updatePayload.scheduled_at = scheduledAt.toISOString();
+  }
+
+  if (body.address !== undefined) updatePayload.address = body.address;
+  if (body.service_type) updatePayload.service_type = body.service_type;
+  if (body.type) updatePayload.type = body.type;
+  if (body.message !== undefined) updatePayload.message = body.message;
+  if (body.duration_minutes !== undefined) updatePayload.duration_minutes = body.duration_minutes;
+
+  if (Object.keys(updatePayload).length === 0) {
+    return applyCors(NextResponse.json({ error: "Missing update fields" }, { status: 400 }));
   }
 
   const { error } = await auth.supabase
     .from("appointments")
-    .update({ status })
+    .update(updatePayload)
     .eq("id", id);
 
   if (error) {

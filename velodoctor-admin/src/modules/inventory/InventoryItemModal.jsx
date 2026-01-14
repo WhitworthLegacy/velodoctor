@@ -337,11 +337,36 @@ export default function InventoryItemModal({ item, onSaved }) {
                   placeholder="Rechercher ou taper nom..."
                   value={selectedClient}
                   onChange={(e) => setSelectedClient(e.target.value)}
-                  list="clients-list"
                 />
-                <datalist id="clients-list">
-                  {clients.map((c) => <option key={c.id} value={c.full_name} />)}
-                </datalist>
+                <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {clients
+                    .filter((c) =>
+                      !selectedClient ||
+                      c.full_name?.toLowerCase().includes(selectedClient.toLowerCase())
+                    )
+                    .slice(0, 5)
+                    .map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setSelectedClient(c.full_name)}
+                        style={{
+                          textAlign: 'left',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #E5E7EB',
+                          background: 'white',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                        }}
+                      >
+                        {c.full_name}
+                      </button>
+                    ))}
+                  {clients.length === 0 && (
+                    <span style={{ fontSize: '12px', color: 'var(--gray)' }}>Aucun client</span>
+                  )}
+                </div>
 
                 <label style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '10px', display: 'block' }}>Technicien</label>
                 <select value={technician} onChange={(e) => setTechnician(e.target.value)}>

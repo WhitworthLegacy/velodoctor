@@ -7,7 +7,7 @@ import ClientForm from './ClientForm';
 import Button from '../../components/ui/Button';
 import CrmCardModal from '../../components/admin/CrmCardModal';
 import { deleteAppointmentById, deleteClientById, isAdminRole } from '../../lib/adminApi';
-import { apiFetch } from '../../lib/apiClient';
+import { apiFetch, getDataVersion } from '../../lib/apiClient';
 
 const DEFAULT_COLUMNS = [
   { id: 'reception', slug: CRM_STAGES.NEW_LEAD, label: 'Réception', position: 1 },
@@ -19,7 +19,7 @@ const DEFAULT_COLUMNS = [
   { id: 'annuler', slug: 'annuler', label: 'Annulé', position: 7 },
 ];
 
-let crmCache = { columns: null, leads: null };
+let crmCache = { columns: null, leads: null, version: 0 };
 
 export default function PipelineBoard() {
   const [columns, setColumns] = useState([]);
@@ -42,8 +42,19 @@ export default function PipelineBoard() {
     fetchAdminStatus();
   }, []);
 
+  useEffect(() => {
+    const handleDataChange = () => {
+      crmCache = { columns: null, leads: null, version: getDataVersion() };
+      fetchData(true);
+    };
+
+    window.addEventListener('admin-data-changed', handleDataChange);
+    return () => window.removeEventListener('admin-data-changed', handleDataChange);
+  }, []);
+
   async function fetchData(force = false) {
-    if (!force && crmCache.columns && crmCache.leads) {
+    const dataVersion = getDataVersion();
+    if (!force && crmCache.columns && crmCache.leads && crmCache.version === dataVersion) {
       setColumns(crmCache.columns);
       setLeads(crmCache.leads);
       setLoading(false);
@@ -60,7 +71,7 @@ export default function PipelineBoard() {
       const orderedColumns = buildColumns(colsData, leadsData);
       setColumns(orderedColumns);
       setLeads(leadsData);
-      crmCache = { columns: orderedColumns, leads: leadsData };
+      crmCache = { columns: orderedColumns, leads: leadsData, version: dataVersion };
       setError(null);
     } catch (error) {
       console.error("Erreur chargement CRM:", error);
@@ -144,7 +155,7 @@ export default function PipelineBoard() {
   const handleChecklistChange = async (leadId, nextChecklists) => {
     setLeads((prev) => {
       const nextLeads = prev.map((l) => (l.id === leadId ? { ...l, checklists: nextChecklists } : l));
-      crmCache = { columns, leads: nextLeads };
+      crmCache = { columns, leads: nextLeads, version: getDataVersion() };
       return nextLeads;
     });
     setDetailsLead((prev) => (prev?.id === leadId ? { ...prev, checklists: nextChecklists } : prev));
@@ -161,7 +172,7 @@ export default function PipelineBoard() {
   const handlePhotosChange = (leadId, nextPhotos) => {
     setLeads((prev) => {
       const nextLeads = prev.map((l) => (l.id === leadId ? { ...l, crm_photos: nextPhotos } : l));
-      crmCache = { columns, leads: nextLeads };
+      crmCache = { columns, leads: nextLeads, version: getDataVersion() };
       return nextLeads;
     });
     setDetailsLead((prev) => (prev?.id === leadId ? { ...prev, crm_photos: nextPhotos } : prev));
@@ -175,7 +186,7 @@ export default function PipelineBoard() {
       setLeads((prev) => prev.filter((l) => l.id !== lead.id));
       setDetailsLead(null);
       setDetailsOpen(false);
-      crmCache = { columns, leads: leads.filter((l) => l.id !== lead.id) };
+      crmCache = { columns, leads: leads.filter((l) => l.id !== lead.id), version: getDataVersion() };
     } catch (error) {
       console.error(error);
       alert("Impossible de supprimer le client.");
@@ -191,7 +202,7 @@ export default function PipelineBoard() {
       if (leadData.id) {
         setLeads(prev => {
           const nextLeads = prev.map(l => l.id === leadData.id ? leadData : l);
-          crmCache = { columns, leads: nextLeads };
+          crmCache = { columns, leads: nextLeads, version: getDataVersion() };
           return nextLeads;
         });
 
@@ -230,7 +241,7 @@ export default function PipelineBoard() {
         if (payload?.client) {
           setLeads(prev => {
             const nextLeads = [payload.client, ...prev];
-            crmCache = { columns, leads: nextLeads };
+            crmCache = { columns, leads: nextLeads, version: getDataVersion() };
             return nextLeads;
           });
         }
@@ -246,7 +257,7 @@ export default function PipelineBoard() {
     // 1. Optimistic UI : On le retire tout de suite de l'affichage
     setLeads(prev => {
       const nextLeads = prev.filter(l => l.id !== leadToArchive.id);
-      crmCache = { columns, leads: nextLeads };
+      crmCache = { columns, leads: nextLeads, version: getDataVersion() };
       return nextLeads;
     });
     setIsModalOpen(false); // On ferme la modale
@@ -290,7 +301,7 @@ export default function PipelineBoard() {
         // Update UI immédiat
         setLeads(prev => {
           const nextLeads = prev.map(l => l.id === currentLead.id ? updatedLead : l);
-          crmCache = { columns, leads: nextLeads };
+          crmCache = { columns, leads: nextLeads, version: getDataVersion() };
           return nextLeads;
         });
         

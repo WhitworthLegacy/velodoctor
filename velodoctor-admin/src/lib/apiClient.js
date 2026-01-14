@@ -1,8 +1,19 @@
 // src/lib/apiClient.js
-import { supabase } from './supabase';
+import { supabase, clearSupabaseAuthStorage } from './supabase';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
 const responseCache = new Map();
+
+export function getDataVersion() {
+  if (typeof window === "undefined") return 0;
+  return window.__adminDataVersion || 0;
+}
+
+function bumpDataVersion() {
+  if (typeof window === "undefined") return;
+  window.__adminDataVersion = (window.__adminDataVersion || 0) + 1;
+  window.dispatchEvent(new Event("admin-data-changed"));
+}
 
 export function getApiBaseUrl() {
   return baseUrl?.replace(/\/$/, "") || null;
@@ -45,6 +56,7 @@ export async function apiFetch(path, options = {}) {
 
   if (method !== "GET") {
     responseCache.clear();
+    bumpDataVersion();
   }
 
   if (method === "GET" && !options.noCache && cacheMs > 0) {
@@ -72,6 +84,10 @@ export async function apiFetch(path, options = {}) {
   let data = null;
   try { data = await res.json(); } catch {}
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      clearSupabaseAuthStorage();
+      await supabase.auth.signOut();
+    }
     if (isDev) {
       console.error('[apiFetch] request failed', { status: res.status, body: data });
     }
