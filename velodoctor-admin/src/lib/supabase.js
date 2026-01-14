@@ -7,11 +7,11 @@ if (!supabaseUrl || !supabaseKey) {
   console.warn('[supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
 }
 
-const sessionStorageRef = typeof window !== 'undefined' ? window.sessionStorage : undefined;
+const storageRef = typeof window !== 'undefined' ? window.localStorage : undefined;
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    storage: sessionStorageRef,
+    storage: storageRef,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,

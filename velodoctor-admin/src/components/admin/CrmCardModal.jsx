@@ -173,71 +173,7 @@ export default function CrmCardModal({
           )}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: '20px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <SectionBlock title="👤 Profil / الملف الشخصي">
-              <InfoRow label="Nom" value={client?.full_name} />
-              <InfoRow label="Téléphone" value={client?.phone} />
-              <InfoRow label="Email" value={client?.email} />
-              <InfoRow label="Adresse" value={client?.address} />
-            </SectionBlock>
-
-            <SectionBlock title="🛠️ Véhicule / المركبة">
-              <InfoRow label="Infos" value={client?.vehicle_info} />
-            </SectionBlock>
-
-            <SectionBlock title="📝 Notes / ملاحظات">
-              <p style={{ margin: 0, color: 'var(--dark)' }}>{client?.notes || '—'}</p>
-            </SectionBlock>
-
-            <SectionBlock title="📷 Pièces jointes">
-              {photos.length === 0 && (
-                <p style={{ margin: 0, color: 'var(--gray)', fontSize: '13px' }}>Aucune pièce jointe.</p>
-              )}
-              {photos.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
-                  {photos.map((url, index) => (
-                    <img
-                      key={`${url}-${index}`}
-                      src={url}
-                      alt={`Attachment ${index + 1}`}
-                      style={{
-                        width: '100%',
-                        aspectRatio: '1',
-                        objectFit: 'cover',
-                        borderRadius: '6px',
-                        border: '1px solid #E5E7EB',
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-              <label
-                style={{
-                  marginTop: '8px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px dashed #CBD5E1',
-                  cursor: 'pointer',
-                  width: 'fit-content',
-                }}
-              >
-                <Camera size={16} />
-                <span style={{ fontSize: '13px' }}>{uploadingPhoto ? 'Upload...' : 'Ajouter une photo'}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  style={{ display: 'none' }}
-                  disabled={uploadingPhoto}
-                />
-              </label>
-            </SectionBlock>
-          </div>
-
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <SectionBlock title="🗂️ Suivi des tâches">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -408,6 +344,70 @@ export default function CrmCardModal({
               >
                 Ajouter
               </button>
+            </SectionBlock>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <SectionBlock title="👤 Profil / الملف الشخصي">
+              <InfoRow label="Nom" value={client?.full_name} />
+              <InfoRow label="Téléphone" value={client?.phone} />
+              <InfoRow label="Email" value={client?.email} />
+              <InfoRow label="Adresse" value={client?.address} />
+            </SectionBlock>
+
+            <SectionBlock title="🛠️ Véhicule / المركبة">
+              <InfoRow label="Infos" value={client?.vehicle_info} />
+            </SectionBlock>
+
+            <SectionBlock title="📝 Notes / ملاحظات">
+              <p style={{ margin: 0, color: 'var(--dark)' }}>{client?.notes || '—'}</p>
+            </SectionBlock>
+
+            <SectionBlock title="📷 Pièces jointes">
+              {photos.length === 0 && (
+                <p style={{ margin: 0, color: 'var(--gray)', fontSize: '13px' }}>Aucune pièce jointe.</p>
+              )}
+              {photos.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
+                  {photos.map((url, index) => (
+                    <img
+                      key={`${url}-${index}`}
+                      src={url}
+                      alt={`Attachment ${index + 1}`}
+                      style={{
+                        width: '100%',
+                        aspectRatio: '1',
+                        objectFit: 'cover',
+                        borderRadius: '6px',
+                        border: '1px solid #E5E7EB',
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              <label
+                style={{
+                  marginTop: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px dashed #CBD5E1',
+                  cursor: 'pointer',
+                  width: 'fit-content',
+                }}
+              >
+                <Camera size={16} />
+                <span style={{ fontSize: '13px' }}>{uploadingPhoto ? 'Upload...' : 'Ajouter une photo'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  style={{ display: 'none' }}
+                  disabled={uploadingPhoto}
+                />
+              </label>
             </SectionBlock>
           </div>
         </div>
