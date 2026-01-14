@@ -1,63 +1,21 @@
-import { useEffect, useState } from 'react';
-import { apiFetch, getDataVersion } from '../../lib/apiClient';
+import { useState } from 'react';
+import { useInterventions, useUpdateIntervention } from '../../lib/hooks/useApi';
 import WorkshopCard from './WorkshopCard';
 import Modal from '../../components/ui/Modal';
 import QuoteForm from './QuoteForm';
-import VehicleSheet from './VehicleSheet'; // 👈 Import du nouveau composant
+import VehicleSheet from './VehicleSheet';
 import { Automation } from '../../lib/automation';
 
-let workshopCache = { data: null, version: 0 };
-
 export default function WorkshopDashboard() {
-  const [interventions, setInterventions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // États Modale
+  const { data: interventions = [], isLoading: loading, error: fetchError, refetch } = useInterventions();
+  const updateIntervention = useUpdateIntervention();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState(null); // 'QUOTE' ou 'SHEET'
+  const [modalMode, setModalMode] = useState(null);
   const [selectedIntervention, setSelectedIntervention] = useState(null);
 
-  useEffect(() => {
-    fetchInterventions();
-  }, []);
+  const error = fetchError?.message || (fetchError ? 'Erreur chargement interventions' : null);
 
-  useEffect(() => {
-    const handleDataChange = () => {
-      workshopCache = { data: null, version: getDataVersion() };
-      fetchInterventions(true);
-    };
-
-    window.addEventListener('admin-data-changed', handleDataChange);
-    return () => window.removeEventListener('admin-data-changed', handleDataChange);
-  }, []);
-
-  async function fetchInterventions(force = false) {
-    const dataVersion = getDataVersion();
-    if (!force && workshopCache.data && workshopCache.version === dataVersion) {
-      setInterventions(workshopCache.data);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const payload = await apiFetch('/api/admin/interventions');
-      const nextInterventions = payload.interventions || [];
-      workshopCache = { data: nextInterventions, version: dataVersion };
-      setInterventions(nextInterventions);
-    } catch (err) {
-      console.error(err);
-      setError(err?.message || 'Erreur chargement interventions');
-      if (!workshopCache) {
-        setInterventions([]);
-      }
-    } finally { setLoading(false); }
-  }
-
-  // Cette fonction est appelée par les boutons de la carte
   function handleAction(id, actionType) {
     const intervention = interventions.find(i => i.id === id);
     setSelectedIntervention(intervention);
@@ -65,42 +23,26 @@ export default function WorkshopDashboard() {
     if (actionType === 'quote_sent') {
       setModalMode('QUOTE');
       setIsModalOpen(true);
-    } else if (actionType === 'view_sheet') { // 👈 Nouveau cas
+    } else if (actionType === 'view_sheet') {
       setModalMode('SHEET');
       setIsModalOpen(true);
     } else {
-      // Cas standard (update direct)
       updateStatus(id, actionType);
     }
   }
 
-
-  // Dans ta fonction handleAction ou updateStatus :
   async function updateStatus(id, newStatus) {
-      // On trouve l'intervention concernée pour avoir l'ID client
-      const intervention = interventions.find(i => i.id === id);
-      // On suppose que l'intervention a une structure : { ..., vehicles: { clients: { id: ... } } }
-      const clientId = intervention?.vehicles?.clients?.id;
+    const intervention = interventions.find(i => i.id === id);
+    const clientId = intervention?.vehicles?.clients?.id;
 
-      if (newStatus === 'ready') { // 'ready' = Terminé pour l'atelier
-        if(confirm("Réparation terminée ? Envoyer mail de récupération ?")) {
-            // On utilise Automation
-            const success = await Automation.completeJob('interventions', id, clientId);
-            if(success) fetchInterventions(true);
-        }
-      } else {
-        // Cas normal
-        try {
-          await apiFetch(`/api/admin/interventions/${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status: newStatus })
-          });
-          fetchInterventions(true);
-        } catch (err) {
-          console.error(err);
-          setError(err?.message || 'Erreur mise à jour intervention');
-        }
+    if (newStatus === 'ready') {
+      if(confirm("Réparation terminée ? Envoyer mail de récupération ?")) {
+        const success = await Automation.completeJob('interventions', id, clientId);
+        if(success) refetch();
       }
+    } else {
+      updateIntervention.mutate({ id, data: { status: newStatus } });
+    }
   }
 
   return (
@@ -118,31 +60,30 @@ export default function WorkshopDashboard() {
       {loading ? <p>Chargement...</p> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {interventions.map((intervention) => (
-            <WorkshopCard 
-              key={intervention.id} 
-              intervention={intervention} 
-              onUpdateStatus={handleAction} // On passe notre fonction améliorée
+            <WorkshopCard
+              key={intervention.id}
+              intervention={intervention}
+              onUpdateStatus={handleAction}
             />
           ))}
         </div>
       )}
 
-      {/* LA MODALE POLYVALENTE */}
-      <Modal 
-        isOpen={isModalOpen} 
+      <Modal
+        isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={modalMode === 'QUOTE' ? "Nouveau Devis" : "Détails Véhicule"}
       >
         {selectedIntervention && modalMode === 'QUOTE' && (
-          <QuoteForm 
+          <QuoteForm
             intervention={selectedIntervention}
             onCancel={() => setIsModalOpen(false)}
-            onSuccess={() => { setIsModalOpen(false); fetchInterventions(true); }}
+            onSuccess={() => { setIsModalOpen(false); refetch(); }}
           />
         )}
-        
+
         {selectedIntervention && modalMode === 'SHEET' && (
-          <VehicleSheet 
+          <VehicleSheet
             intervention={selectedIntervention}
             onClose={() => setIsModalOpen(false)}
           />

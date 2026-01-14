@@ -1,69 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Package, Plus, AlertTriangle, ShoppingCart, Search } from 'lucide-react';
-import { apiFetch, getDataVersion } from '../../lib/apiClient';
+import { useInventoryItems } from '../../lib/hooks/useApi';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import InventoryItemModal from './InventoryItemModal';
 
-let inventoryCache = { data: null, version: 0 };
-
 export default function InventoryDashboard() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data: items = [], isLoading: loading, error: fetchError, refetch } = useInventoryItems();
+
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Modales
   const [isItemOpen, setIsItemOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
-  useEffect(() => {
-    fetchInventory();
-  }, []);
+  const error = fetchError?.message || (fetchError ? 'Erreur chargement stock' : null);
 
-  useEffect(() => {
-    const handleDataChange = () => {
-      inventoryCache = { data: null, version: getDataVersion() };
-      fetchInventory(true);
-    };
-
-    window.addEventListener('admin-data-changed', handleDataChange);
-    return () => window.removeEventListener('admin-data-changed', handleDataChange);
-  }, []);
-
-  async function fetchInventory(force = false) {
-    const dataVersion = getDataVersion();
-    if (!force && inventoryCache.data && inventoryCache.version === dataVersion) {
-      setItems(inventoryCache.data);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const payload = await apiFetch('/api/admin/inventory-items');
-      const nextItems = payload.items || [];
-      inventoryCache = { data: nextItems, version: dataVersion };
-      setItems(nextItems);
-    } catch (err) {
-      console.error(err);
-      setError(err?.message || 'Erreur chargement stock');
-      setItems(inventoryCache || []);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Filtrage
-  const filteredItems = items.filter(i => 
-    i.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredItems = items.filter(i =>
+    i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     i.reference?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Articles à commander (Stock <= Seuil)
   const lowStockItems = items.filter(i => i.quantity <= i.min_threshold);
 
   function getCoverImage(item) {
@@ -88,26 +44,24 @@ export default function InventoryDashboard() {
           </Button>
         </div>
 
-        {/* Barre de recherche */}
         <div style={{ position: 'relative', marginTop: '10px' }}>
           <Search size={20} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--gray)' }} />
-          <input 
-            type="text" 
-            placeholder="Chercher pièce, référence..." 
+          <input
+            type="text"
+            placeholder="Chercher pièce, référence..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ paddingLeft: '40px' }}
           />
         </div>
 
-        {/* Alerte Commande Automatique */}
         {lowStockItems.length > 0 && (
           <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', padding: '10px', borderRadius: '8px', marginTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ color: '#991B1B', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <AlertTriangle size={16} />
               <strong>{lowStockItems.length} articles</strong> bientôt épuisés !
             </div>
-            <button 
+            <button
               onClick={() => alert(`Commande générée pour :\n${lowStockItems.map(i => `- ${i.name} (Reste: ${i.quantity})`).join('\n')}`)}
               style={{ background: '#DC2626', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', display: 'flex', gap: '4px' }}
             >
@@ -168,7 +122,7 @@ export default function InventoryDashboard() {
       >
         <InventoryItemModal
           item={selectedItem}
-          onSaved={() => { setIsItemOpen(false); fetchInventory(true); }}
+          onSaved={() => { setIsItemOpen(false); refetch(); }}
         />
       </Modal>
     </div>

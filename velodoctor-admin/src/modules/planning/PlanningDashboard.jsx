@@ -1,19 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import format from 'date-fns/format';
 import parse from 'date-fns/parse';
 import startOfWeek from 'date-fns/startOfWeek';
 import getDay from 'date-fns/getDay';
 import fr from 'date-fns/locale/fr';
-import 'react-big-calendar/lib/css/react-big-calendar.css'; // Le style du calendrier
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
-import { apiFetch, getDataVersion } from '../../lib/apiClient';
+import { useAppointments, useInterventions, useUpdateAppointment, useUpdateIntervention } from '../../lib/hooks/useApi';
 
-// Configuration de la langue française pour le calendrier
-const locales = {
-  'fr': fr,
-};
+const locales = { 'fr': fr };
 
 const localizer = dateFnsLocalizer({
   format,
@@ -23,96 +21,53 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
-let planningCache = { data: null, version: 0 };
-
 export default function PlanningDashboard() {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
+  const { data: appointments = [], isLoading: appointmentsLoading, error: appointmentsError } = useAppointments();
+  const { data: interventions = [], isLoading: interventionsLoading, error: interventionsError } = useInterventions();
+  const updateAppointment = useUpdateAppointment();
+  const updateIntervention = useUpdateIntervention();
+
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-    fetchAdminStatus();
-  }, []);
+  const loading = appointmentsLoading || interventionsLoading;
+  const fetchError = appointmentsError || interventionsError;
+  const error = fetchError ? `Impossible de charger le planning${fetchError?.status ? ` (HTTP ${fetchError.status})` : ''}.` : null;
 
   useEffect(() => {
-    const handleDataChange = () => {
-      planningCache = { data: null, version: getDataVersion() };
-      fetchData(true);
-    };
-
-    window.addEventListener('admin-data-changed', handleDataChange);
-    return () => window.removeEventListener('admin-data-changed', handleDataChange);
+    isAdminRole().then(setIsAdmin);
   }, []);
 
-  async function fetchData(force = false) {
-    const dataVersion = getDataVersion();
-    if (!force && planningCache.data && planningCache.version === dataVersion) {
-      setEvents(planningCache.data);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+  const events = useMemo(() => {
+    const logisticsEvents = (appointments || []).map(apt => ({
+      id: `apt-${apt.id}`,
+      title: `🚛 ${apt.clients?.full_name || 'Client'} - ${apt.type === 'pickup' ? 'Récup' : 'Livr'}`,
+      start: new Date(apt.scheduled_at),
+      end: new Date(new Date(apt.scheduled_at).getTime() + 60 * 60 * 1000),
+      type: 'logistics',
+      status: apt.status,
+      appointment: apt,
+    }));
 
-    setLoading(true);
-    try {
-      // 1. Récupérer les RDV Logistiques (Transport)
-      const appointmentsPayload = await apiFetch('/api/admin/appointments');
-      const appointments = appointmentsPayload.appointments || [];
+    const workshopEvents = (interventions || []).map(int => ({
+      id: `int-${int.id}`,
+      title: `🔧 ${int.vehicles?.brand} (${int.status})`,
+      start: new Date(int.created_at),
+      end: new Date(new Date(int.created_at).getTime() + 2 * 60 * 60 * 1000),
+      type: 'workshop',
+      status: int.status,
+      intervention: int,
+    }));
 
-      // 2. Récupérer les Interventions (Atelier)
-      // Note : Pour l'instant on utilise 'created_at' comme date,
-      // idéalement on ajoutera une colonne 'planned_at' plus tard.
-      const interventionsPayload = await apiFetch('/api/admin/interventions');
-      const interventions = interventionsPayload.interventions || [];
+    return [...logisticsEvents, ...workshopEvents];
+  }, [appointments, interventions]);
 
-      // 3. Fusionner et formater pour le calendrier
-      const logisticsEvents = (appointments || []).map(apt => ({
-        id: `apt-${apt.id}`,
-        title: `🚛 ${apt.clients?.full_name || 'Client'} - ${apt.type === 'pickup' ? 'Récup' : 'Livr'}`,
-        start: new Date(apt.scheduled_at),
-        end: new Date(new Date(apt.scheduled_at).getTime() + 60 * 60 * 1000), // Durée fictive 1h
-        type: 'logistics',
-        status: apt.status,
-        appointment: apt,
-      }));
-
-      const workshopEvents = (interventions || []).map(int => ({
-        id: `int-${int.id}`,
-        title: `🔧 ${int.vehicles?.brand} (${int.status})`,
-        start: new Date(int.created_at), // Date d'entrée atelier
-        end: new Date(new Date(int.created_at).getTime() + 2 * 60 * 60 * 1000), // Durée fictive 2h
-        type: 'workshop',
-        status: int.status,
-        intervention: int,
-      }));
-
-      const nextEvents = [...logisticsEvents, ...workshopEvents];
-      planningCache = { data: nextEvents, version: dataVersion };
-      setEvents(nextEvents);
-      setError(null);
-    } catch (fetchError) {
-      console.error(fetchError);
-      const status = fetchError?.status ? ` (HTTP ${fetchError.status})` : '';
-      setError(`Impossible de charger le planning${status}.`);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchAdminStatus() {
-    const admin = await isAdminRole();
-    setIsAdmin(admin);
-  }
-
-  // Fonction pour donner une couleur selon le type d'événement
   const eventStyleGetter = (event) => {
-    let backgroundColor = event.type === 'logistics' ? '#00ACC2' : '#F58529'; // Bleu ou Orange
-    if (event.status === 'done' || event.status === 'ready') backgroundColor = '#10B981'; // Vert si fini
-    
+    let backgroundColor = event.type === 'logistics' ? '#00ACC2' : '#F58529';
+    if (event.status === 'done' || event.status === 'ready') backgroundColor = '#10B981';
+
     return {
       style: {
         backgroundColor,
@@ -133,9 +88,9 @@ export default function PlanningDashboard() {
       await deleteAppointmentById(apt.id);
       setDetailsOpen(false);
       setSelectedEvent(null);
-      await fetchData(true);
-    } catch (error) {
-      console.error(error);
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    } catch (err) {
+      console.error(err);
       alert('Suppression impossible.');
     }
   };
@@ -221,19 +176,11 @@ export default function PlanningDashboard() {
         }
       }
 
-      await apiFetch(`/api/admin/appointments/${apt.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      });
+      updateAppointment.mutate({ id: apt.id, data: payload });
     } else {
       const intervention = selectedEvent.intervention || {};
-      await apiFetch(`/api/admin/interventions/${intervention.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: draft.status }),
-      });
+      updateIntervention.mutate({ id: intervention.id, data: { status: draft.status } });
     }
-
-    await fetchData(true);
   };
 
   return (

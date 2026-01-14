@@ -1,123 +1,90 @@
-import { useState, useEffect } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { supabase, clearSupabaseAuthStorage } from './lib/supabase';
+import { queryClient } from './lib/queryClient';
+import { useAuth } from './lib/hooks/useAuth';
 import { ROLES } from './lib/constants';
-import { fetchUserRole } from './lib/adminApi';
-import InventoryDashboard from './modules/inventory/InventoryDashboard'; // AJOUT
 
-// Layouts & Pages
 import Navbar from './components/layout/Navbar';
 import BottomNav from './components/layout/BottomNav';
 import Login from './modules/auth/Login';
 
-// Modules
 import LogisticsDashboard from './modules/logistics/LogisticsDashboard';
 import WorkshopDashboard from './modules/workshop/WorkshopDashboard';
 import InterventionDetail from './modules/workshop/InterventionDetail';
 import ClientList from './modules/admin/ClientList';
 import PlanningDashboard from './modules/planning/PlanningDashboard';
 import PipelineBoard from './modules/crm/PipelineBoard';
+import InventoryDashboard from './modules/inventory/InventoryDashboard';
 
-function App() {
-  const [session, setSession] = useState(null);
-  const [userRole, setUserRole] = useState(null); // Stocke le rôle
-  const [loading, setLoading] = useState(true);
-  const sessionTimeoutMs = 5000;
+function AppContent() {
+  const { session, userRole, loading, error, retry, logout } = useAuth();
 
-  useEffect(() => {
-    window.supabase = supabase;
-    const safetyTimeout = setTimeout(async () => {
-      if (!loading) return;
-      console.warn('[auth] safety timeout triggered, resetting session');
-      clearSupabaseAuthStorage();
-      await supabase.auth.signOut();
-      setSession(null);
-      setUserRole(null);
-      setLoading(false);
-    }, 7000);
-
-    // 1. Récupérer session + rôle
-    const getSession = async () => {
-      try {
-        const { data: { session } } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Session timeout')), sessionTimeoutMs)
-          ),
-        ]);
-        if (import.meta.env.DEV) {
-          console.info('[auth] session fetched', { hasSession: Boolean(session) });
-        }
-        setSession(session);
-        if (session) {
-          await resolveUserRole();
-        } else {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('[auth] session fetch failed', error);
-        clearSupabaseAuthStorage();
-        await supabase.auth.signOut();
-        setSession(null);
-        setLoading(false);
-      }
-    };
-
-    getSession();
-
-    // 2. Écouteur de changement
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (import.meta.env.DEV) {
-        console.info('[auth] auth state changed', { hasSession: Boolean(session) });
-      }
-      setSession(session);
-      if (session) {
-        await resolveUserRole();
-      } else {
-        setUserRole(null);
-      }
-      setLoading(false);
-    });
-
-    return () => {
-      clearTimeout(safetyTimeout);
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // Fonction pour récupérer le rôle dans la table 'profiles' (si elle existe)
-  // Sinon on peut définir des rôles basés sur l'email pour le MVP
-  async function resolveUserRole() {
-    try {
-      const role = await fetchUserRole();
-      if (import.meta.env.DEV) {
-        console.info('[auth] role resolved', { role: role || null });
-      }
-      setUserRole(role || null);
-    } catch (e) {
-      console.error(e);
-      clearSupabaseAuthStorage();
-      await supabase.auth.signOut();
-      setSession(null);
-      setUserRole(null);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // Composant de Redirection Accueil
   const HomeRedirect = () => {
     if (!userRole) return <Navigate to="/crm" replace />;
-    
+
     switch(userRole) {
       case ROLES.DRIVER: return <Navigate to="/logistics" replace />;
       case ROLES.TECH: return <Navigate to="/workshop" replace />;
-      default: return <Navigate to="/crm" replace />; // Admin -> CRM
+      default: return <Navigate to="/crm" replace />;
     }
   };
 
   if (loading) {
-    return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#00ACC2' }}>Chargement...</div>;
+    return (
+      <div style={{
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '20px',
+        padding: '20px'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid #E5E7EB',
+          borderTop: '3px solid #00ACC2',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <div style={{ color: '#00ACC2', fontSize: '16px' }}>Connexion en cours...</div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        padding: '20px',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '48px' }}>⚠️</div>
+        <div style={{ color: '#DC2626', fontSize: '16px', maxWidth: '300px' }}>{error}</div>
+        <button
+          onClick={retry}
+          style={{
+            background: '#00ACC2',
+            color: 'white',
+            border: 'none',
+            padding: '12px 24px',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            cursor: 'pointer'
+          }}
+        >
+          Réessayer
+        </button>
+      </div>
+    );
   }
 
   if (!session) {
@@ -128,21 +95,19 @@ function App() {
     <BrowserRouter>
       <div style={{ minHeight: '100vh', position: 'relative' }}>
         <Navbar />
-        
+
         <div style={{ position: 'fixed', top: '15px', right: '20px', zIndex: 101 }}>
-             <button 
-                onClick={() => supabase.auth.signOut()}
-                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
-             >
-                DECONNEXION
-             </button>
+          <button
+            onClick={logout}
+            style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
+          >
+            DECONNEXION
+          </button>
         </div>
 
-        <div style={{ paddingBottom: '80px' }}> 
+        <div style={{ paddingBottom: '80px' }}>
           <Routes>
-            {/* 👇 La racine redirige intelligemment */}
             <Route path="/" element={<HomeRedirect />} />
-
             <Route path="/logistics" element={<LogisticsDashboard />} />
             <Route path="/crm" element={<PipelineBoard />} />
             <Route path="/workshop" element={<WorkshopDashboard />} />
@@ -150,7 +115,6 @@ function App() {
             <Route path="/admin" element={<ClientList />} />
             <Route path="/planning" element={<PlanningDashboard />} />
             <Route path="/inventory" element={<InventoryDashboard />} />
-
             <Route path="*" element={<HomeRedirect />} />
           </Routes>
         </div>
@@ -158,6 +122,14 @@ function App() {
         <BottomNav />
       </div>
     </BrowserRouter>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppContent />
+    </QueryClientProvider>
   );
 }
 

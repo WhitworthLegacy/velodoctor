@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Settings, UserPlus } from 'lucide-react';
 import { CRM_STAGES } from '../../lib/constants';
 import Card from '../../components/ui/Card';
@@ -7,7 +8,8 @@ import ClientForm from './ClientForm';
 import Button from '../../components/ui/Button';
 import CrmCardModal from '../../components/admin/CrmCardModal';
 import { deleteAppointmentById, deleteClientById, isAdminRole } from '../../lib/adminApi';
-import { apiFetch, getDataVersion } from '../../lib/apiClient';
+import { useClients, useCrmColumns, useUpdateClient, useCreateClient, useClientAppointments } from '../../lib/hooks/useApi';
+import { apiFetch } from '../../lib/apiClient';
 
 const DEFAULT_COLUMNS = [
   { id: 'reception', slug: CRM_STAGES.NEW_LEAD, label: 'Réception', position: 1 },
@@ -19,87 +21,42 @@ const DEFAULT_COLUMNS = [
   { id: 'annuler', slug: 'annuler', label: 'Annulé', position: 7 },
 ];
 
-let crmCache = { columns: null, leads: null, version: 0 };
-
 export default function PipelineBoard() {
-  const [columns, setColumns] = useState([]);
+  const queryClient = useQueryClient();
+  const { data: clientsData = [], isLoading: clientsLoading, error: clientsError } = useClients();
+  const { data: columnsData = [], isLoading: columnsLoading } = useCrmColumns();
+  const updateClient = useUpdateClient();
+  const createClient = useCreateClient();
+
   const [leads, setLeads] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [columns, setColumns] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsLead, setDetailsLead] = useState(null);
-  const [leadAppointments, setLeadAppointments] = useState([]);
-  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
-  
-  // Modale
+  const [selectedLeadId, setSelectedLeadId] = useState(null);
+
+  const { data: leadAppointments = [], isLoading: appointmentsLoading } = useClientAppointments(selectedLeadId);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
 
   useEffect(() => {
-    fetchData();
-    fetchAdminStatus();
-  }, []);
+    setLeads(clientsData);
+  }, [clientsData]);
 
   useEffect(() => {
-    const handleDataChange = () => {
-      crmCache = { columns: null, leads: null, version: getDataVersion() };
-      fetchData(true);
-    };
+    const orderedColumns = buildColumns(columnsData, leads);
+    setColumns(orderedColumns);
+  }, [columnsData, leads]);
 
-    window.addEventListener('admin-data-changed', handleDataChange);
-    return () => window.removeEventListener('admin-data-changed', handleDataChange);
+  useEffect(() => {
+    isAdminRole().then(setIsAdmin);
   }, []);
 
-  async function fetchData(force = false) {
-    const dataVersion = getDataVersion();
-    if (!force && crmCache.columns && crmCache.leads && crmCache.version === dataVersion) {
-      setColumns(crmCache.columns);
-      setLeads(crmCache.leads);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+  const loading = clientsLoading || columnsLoading;
+  const error = clientsError ? `Impossible de charger le CRM${clientsError?.status ? ` (HTTP ${clientsError.status})` : ''}.` : null;
 
-    setLoading(true);
-    try {
-      const columnsPayload = await apiFetch('/api/admin/crm-columns');
-      const clientsPayload = await apiFetch('/api/admin/clients');
-      const colsData = columnsPayload.columns || [];
-      const leadsData = clientsPayload.clients || [];
-      const orderedColumns = buildColumns(colsData, leadsData);
-      setColumns(orderedColumns);
-      setLeads(leadsData);
-      crmCache = { columns: orderedColumns, leads: leadsData, version: dataVersion };
-      setError(null);
-    } catch (error) {
-      console.error("Erreur chargement CRM:", error);
-      const status = error?.status ? ` (HTTP ${error.status})` : '';
-      setError(`Impossible de charger le CRM${status}.`);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchAdminStatus() {
-    const admin = await isAdminRole();
-    setIsAdmin(admin);
-  }
-
-  async function loadLeadAppointments(clientId) {
-    setAppointmentsLoading(true);
-    try {
-      const payload = await apiFetch(`/api/admin/clients/${clientId}/appointments`);
-      setLeadAppointments(payload.appointments || []);
-    } catch (error) {
-      console.error(error);
-      setLeadAppointments([]);
-    }
-    setAppointmentsLoading(false);
-  }
-
-  // --- HELPER PROGRESSION ---
   const calculateGlobalProgress = (checklists) => {
     if (!checklists || typeof checklists !== 'object') return { total: 0, checked: 0, percent: 0 };
     let totalItems = 0;
@@ -114,16 +71,15 @@ export default function PipelineBoard() {
     return { total: totalItems, checked: checkedItems, percent };
   };
 
-  // --- ACTIONS ---
   const handleCreateLead = () => {
-    setSelectedLead(null); // NULL = Mode Création
+    setSelectedLead(null);
     setIsModalOpen(true);
   };
 
   const handleOpenDetails = (lead) => {
     setDetailsLead(lead);
+    setSelectedLeadId(lead.id);
     setDetailsOpen(true);
-    loadLeadAppointments(lead.id);
   };
 
   const handleStageChange = async (nextStage) => {
@@ -131,21 +87,14 @@ export default function PipelineBoard() {
     const updated = { ...detailsLead, crm_stage: nextStage };
     setDetailsLead(updated);
     setLeads((prev) => prev.map((l) => (l.id === detailsLead.id ? updated : l)));
-    try {
-      await apiFetch(`/api/admin/clients/${detailsLead.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ crm_stage: nextStage }),
-      });
-    } catch (error) {
-      console.error(error);
-    }
+    updateClient.mutate({ id: detailsLead.id, data: { crm_stage: nextStage } });
   };
 
   const handleDeleteAppointment = async (appointmentId) => {
     if (!confirm('Supprimer ce rendez-vous ?')) return;
     try {
       await deleteAppointmentById(appointmentId);
-      setLeadAppointments((prev) => prev.filter((apt) => apt.id !== appointmentId));
+      queryClient.invalidateQueries({ queryKey: ['client-appointments', selectedLeadId] });
     } catch (deleteError) {
       console.error(deleteError);
       alert('Suppression impossible.');
@@ -153,28 +102,13 @@ export default function PipelineBoard() {
   };
 
   const handleChecklistChange = async (leadId, nextChecklists) => {
-    setLeads((prev) => {
-      const nextLeads = prev.map((l) => (l.id === leadId ? { ...l, checklists: nextChecklists } : l));
-      crmCache = { columns, leads: nextLeads, version: getDataVersion() };
-      return nextLeads;
-    });
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, checklists: nextChecklists } : l)));
     setDetailsLead((prev) => (prev?.id === leadId ? { ...prev, checklists: nextChecklists } : prev));
-    try {
-      await apiFetch(`/api/admin/clients/${leadId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ checklists: nextChecklists }),
-      });
-    } catch (error) {
-      console.error('[CRM] checklists save failed:', error);
-    }
+    updateClient.mutate({ id: leadId, data: { checklists: nextChecklists } });
   };
 
   const handlePhotosChange = (leadId, nextPhotos) => {
-    setLeads((prev) => {
-      const nextLeads = prev.map((l) => (l.id === leadId ? { ...l, crm_photos: nextPhotos } : l));
-      crmCache = { columns, leads: nextLeads, version: getDataVersion() };
-      return nextLeads;
-    });
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, crm_photos: nextPhotos } : l)));
     setDetailsLead((prev) => (prev?.id === leadId ? { ...prev, crm_photos: nextPhotos } : prev));
   };
 
@@ -186,26 +120,19 @@ export default function PipelineBoard() {
       setLeads((prev) => prev.filter((l) => l.id !== lead.id));
       setDetailsLead(null);
       setDetailsOpen(false);
-      crmCache = { columns, leads: leads.filter((l) => l.id !== lead.id), version: getDataVersion() };
-    } catch (error) {
-      console.error(error);
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+    } catch (err) {
+      console.error(err);
       alert("Impossible de supprimer le client.");
     }
   };
 
   async function updateLead(leadData, silent = false) {
-    // Si c'est une sauvegarde manuelle (bouton), on ferme la modale
     if (!silent) setIsModalOpen(false);
 
     try {
-      // 1. MISE À JOUR (Client existant)
       if (leadData.id) {
-        setLeads(prev => {
-          const nextLeads = prev.map(l => l.id === leadData.id ? leadData : l);
-          crmCache = { columns, leads: nextLeads, version: getDataVersion() };
-          return nextLeads;
-        });
-
+        setLeads(prev => prev.map(l => l.id === leadData.id ? leadData : l));
         await apiFetch(`/api/admin/clients/${leadData.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
@@ -219,31 +146,21 @@ export default function PipelineBoard() {
             checklists: leadData.checklists,
           }),
         });
-      } 
-      // 2. CRÉATION (Nouveau client)
-      else {
-        // On nettoie l'objet avant l'envoi
+        queryClient.invalidateQueries({ queryKey: ['clients'] });
+      } else {
         const { id, ...newClientData } = leadData;
-        const payload = await apiFetch('/api/admin/clients', {
-          method: 'POST',
-          body: JSON.stringify({
-            full_name: newClientData.full_name || 'Nouveau Client',
-            phone: newClientData.phone,
-            email: newClientData.email,
-            address: newClientData.address,
-            vehicle_info: newClientData.vehicle_info,
-            crm_stage: newClientData.crm_stage || 'reception',
-            notes: newClientData.notes,
-            checklists: newClientData.checklists || {},
-          }),
+        const payload = await createClient.mutateAsync({
+          full_name: newClientData.full_name || 'Nouveau Client',
+          phone: newClientData.phone,
+          email: newClientData.email,
+          address: newClientData.address,
+          vehicle_info: newClientData.vehicle_info,
+          crm_stage: newClientData.crm_stage || 'reception',
+          notes: newClientData.notes,
+          checklists: newClientData.checklists || {},
         });
-
         if (payload?.client) {
-          setLeads(prev => {
-            const nextLeads = [payload.client, ...prev];
-            crmCache = { columns, leads: nextLeads, version: getDataVersion() };
-            return nextLeads;
-          });
+          setLeads(prev => [payload.client, ...prev]);
         }
       }
     } catch (err) {
@@ -252,64 +169,41 @@ export default function PipelineBoard() {
     }
   }
 
-  // --- ACTION ARCHIVER ---
   async function archiveLead(leadToArchive) {
-    // 1. Optimistic UI : On le retire tout de suite de l'affichage
-    setLeads(prev => {
-      const nextLeads = prev.filter(l => l.id !== leadToArchive.id);
-      crmCache = { columns, leads: nextLeads, version: getDataVersion() };
-      return nextLeads;
-    });
-    setIsModalOpen(false); // On ferme la modale
+    setLeads(prev => prev.filter(l => l.id !== leadToArchive.id));
+    setIsModalOpen(false);
 
     try {
-      // 2. Update Supabase
       await apiFetch(`/api/admin/clients/${leadToArchive.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ is_archived: true }),
       });
-      
-      // Optionnel : Petit feedback console
-      console.log("Client archivé avec succès");
-
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
     } catch (err) {
       console.error("Erreur lors de l'archivage:", err);
-      alert("Erreur technique lors de l'archivage. Le client risque de réapparaître au rechargement.");
-      fetchData(true); // En cas d'erreur, on recharge les données pour être sûr
+      alert("Erreur technique lors de l'archivage.");
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
     }
   }
 
-  // --- DRAG & DROP (VERSION CORRIGÉE - Anti Reset) ---
   const handleDragStart = (e, lead) => {
-    // On passe TOUT l'objet lead (avec ses checklists à jour)
     e.dataTransfer.setData("leadData", JSON.stringify(lead));
   };
-  
+
   const handleDragOver = (e) => e.preventDefault();
-  
+
   const handleDrop = async (e, targetSlug) => {
     e.preventDefault();
     try {
       const leadDataString = e.dataTransfer.getData("leadData");
       if (!leadDataString) return;
-      
+
       const currentLead = JSON.parse(leadDataString);
-      
+
       if (currentLead && currentLead.crm_stage !== targetSlug) {
         const updatedLead = { ...currentLead, crm_stage: targetSlug };
-        
-        // Update UI immédiat
-        setLeads(prev => {
-          const nextLeads = prev.map(l => l.id === currentLead.id ? updatedLead : l);
-          crmCache = { columns, leads: nextLeads, version: getDataVersion() };
-          return nextLeads;
-        });
-        
-        // Update DB
-        await apiFetch(`/api/admin/clients/${currentLead.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ crm_stage: targetSlug }),
-        });
+        setLeads(prev => prev.map(l => l.id === currentLead.id ? updatedLead : l));
+        updateClient.mutate({ id: currentLead.id, data: { crm_stage: targetSlug } });
       }
     } catch (err) { console.error(err); }
   };
@@ -329,12 +223,12 @@ export default function PipelineBoard() {
 
   return (
     <div style={{ height: 'calc(100vh - 80px)', overflowX: 'auto', display: 'flex', flexDirection: 'column', background: '#F3F4F6' }}>
-      
+
       <header style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ margin: 0 }}>📊 Pipeline VeloDoctor</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
           <Button onClick={handleCreateLead} style={{ width: 'auto', background: '#00ACC2' }}>
-              <UserPlus size={16}/> Nouveau Prospect
+            <UserPlus size={16}/> Nouveau Prospect
           </Button>
 
           <button onClick={() => setEditMode(!editMode)} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', background: 'white' }}>
@@ -351,7 +245,7 @@ export default function PipelineBoard() {
 
       <div style={{ flex: 1, display: 'flex', gap: '16px', padding: '0 20px 20px 20px', overflowY: 'hidden' }}>
         {columns.map((col) => (
-          <div 
+          <div
             key={col.id}
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, col.slug)}
@@ -366,27 +260,26 @@ export default function PipelineBoard() {
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {leads.filter(lead => (lead.crm_stage || CRM_STAGES.NEW_LEAD) === col.slug).map(lead => {
-                  const stats = calculateGlobalProgress(lead.checklists);
-                  return (
-                    <div key={lead.id} draggable onDragStart={(e) => handleDragStart(e, lead)} style={{ cursor: 'grab' }}>
-                      <Card onClick={() => handleOpenDetails(lead)} className="hover:shadow-md transition-shadow">
-                        <div style={{ fontWeight: 600, marginBottom: '4px' }}>{lead.full_name}</div>
-                        {/* Sécurité : Affichage ID avec fallback */}
-                        <div style={{ fontSize: '10px', color: '#9CA3AF', marginBottom: '4px' }}>N° {String(lead.tracking_id || 0).padStart(5, '0')}</div>
-                        {stats.total > 0 && (
-                           <div style={{ marginTop: '8px' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#6B7280', marginBottom: '2px' }}>
-                                 <span>Progression</span><span style={{ fontWeight: 'bold' }}>{stats.checked}/{stats.total}</span>
-                              </div>
-                              <div style={{ height: '6px', background: '#E5E7EB', borderRadius: '3px', overflow: 'hidden' }}>
-                                 <div style={{ height: '100%', width: `${stats.percent}%`, background: stats.percent === 100 ? '#10B981' : '#00ACC2', transition: 'width 0.3s' }} /> 
-                              </div>
-                           </div>
-                        )}
-                      </Card>
-                    </div>
-                  );
-                })}
+                const stats = calculateGlobalProgress(lead.checklists);
+                return (
+                  <div key={lead.id} draggable onDragStart={(e) => handleDragStart(e, lead)} style={{ cursor: 'grab' }}>
+                    <Card onClick={() => handleOpenDetails(lead)} className="hover:shadow-md transition-shadow">
+                      <div style={{ fontWeight: 600, marginBottom: '4px' }}>{lead.full_name}</div>
+                      <div style={{ fontSize: '10px', color: '#9CA3AF', marginBottom: '4px' }}>N° {String(lead.tracking_id || 0).padStart(5, '0')}</div>
+                      {stats.total > 0 && (
+                        <div style={{ marginTop: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#6B7280', marginBottom: '2px' }}>
+                            <span>Progression</span><span style={{ fontWeight: 'bold' }}>{stats.checked}/{stats.total}</span>
+                          </div>
+                          <div style={{ height: '6px', background: '#E5E7EB', borderRadius: '3px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${stats.percent}%`, background: stats.percent === 100 ? '#10B981' : '#00ACC2', transition: 'width 0.3s' }} />
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -394,12 +287,12 @@ export default function PipelineBoard() {
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={selectedLead ? "Fiche Suivi" : "Nouveau Prospect"}>
-        <ClientForm 
+        <ClientForm
           client={selectedLead}
           availableStages={columns}
           onSave={updateLead}
           onCancel={() => setIsModalOpen(false)}
-          onArchive={archiveLead}  // <--- AJOUTER CETTE LIGNE
+          onArchive={archiveLead}
         />
       </Modal>
 

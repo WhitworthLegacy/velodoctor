@@ -1,90 +1,39 @@
 import { useEffect, useState } from 'react';
-import { Users, Phone, Mail, MapPin, Search } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Phone, Mail, MapPin, Search } from 'lucide-react';
 import Card from '../../components/ui/Card';
 import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
-import { apiFetch, getDataVersion } from '../../lib/apiClient';
-
-let clientListCache = { data: null, version: 0 };
+import { useClients, useClientAppointments, useUpdateClient } from '../../lib/hooks/useApi';
 
 export default function ClientList() {
-  const [clients, setClients] = useState([]);
+  const queryClient = useQueryClient();
+  const { data: clients = [], isLoading: loading, error: fetchError } = useClients();
+  const updateClient = useUpdateClient();
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [clientAppointments, setClientAppointments] = useState([]);
-  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    fetchClients();
-    fetchAdminStatus();
-  }, []);
+  const { data: clientAppointments = [], isLoading: appointmentsLoading } = useClientAppointments(selectedClient?.id);
+
+  const error = fetchError ? `Impossible de charger les clients${fetchError?.status ? ` (HTTP ${fetchError.status})` : ''}.` : null;
 
   useEffect(() => {
-    const handleDataChange = () => {
-      clientListCache = { data: null, version: getDataVersion() };
-      fetchClients(true);
-    };
-
-    window.addEventListener('admin-data-changed', handleDataChange);
-    return () => window.removeEventListener('admin-data-changed', handleDataChange);
+    isAdminRole().then(setIsAdmin);
   }, []);
-
-  async function fetchClients(force = false) {
-    const dataVersion = getDataVersion();
-    if (!force && clientListCache.data && clientListCache.version === dataVersion) {
-      setClients(clientListCache.data);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    try {
-      const payload = await apiFetch('/api/admin/clients');
-      const nextClients = payload.clients || [];
-      clientListCache = { data: nextClients, version: dataVersion };
-      setClients(nextClients);
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      const status = err?.status ? ` (HTTP ${err.status})` : '';
-      setError(`Impossible de charger les clients${status}.`);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchAdminStatus() {
-    const admin = await isAdminRole();
-    setIsAdmin(admin);
-  }
-
-  async function loadClientAppointments(clientId) {
-    setAppointmentsLoading(true);
-    try {
-      const payload = await apiFetch(`/api/admin/clients/${clientId}/appointments`);
-      setClientAppointments(payload.appointments || []);
-    } catch (error) {
-      console.error(error);
-      setClientAppointments([]);
-    }
-    setAppointmentsLoading(false);
-  }
 
   const handleOpenDetails = (client) => {
     setSelectedClient(client);
     setDetailsOpen(true);
-    loadClientAppointments(client.id);
   };
 
   const handleDeleteAppointment = async (appointmentId) => {
     if (!confirm('Supprimer ce rendez-vous ?')) return;
     try {
       await deleteAppointmentById(appointmentId);
-      setClientAppointments((prev) => prev.filter((apt) => apt.id !== appointmentId));
+      queryClient.invalidateQueries({ queryKey: ['client-appointments', selectedClient?.id] });
     } catch (deleteError) {
       console.error(deleteError);
       alert('Suppression impossible.');
@@ -126,8 +75,7 @@ export default function ClientList() {
         </div>
       );
 
-  // Filtrage dynamique selon la recherche
-  const filteredClients = clients.filter(client => 
+  const filteredClients = clients.filter(client =>
     client.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.phone?.includes(searchTerm)
   );
@@ -146,9 +94,9 @@ export default function ClientList() {
 
   const handleSaveClient = async (draft) => {
     if (!selectedClient?.id) return;
-    await apiFetch(`/api/admin/clients/${selectedClient.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
+    updateClient.mutate({
+      id: selectedClient.id,
+      data: {
         full_name: draft.full_name || null,
         phone: draft.phone || null,
         email: draft.email || null,
@@ -156,25 +104,23 @@ export default function ClientList() {
         vehicle_info: draft.vehicle_info || null,
         notes: draft.notes || null,
         crm_stage: draft.crm_stage || null,
-      }),
+      },
     });
-    fetchClients(true);
   };
 
   return (
     <div className="container">
       <header style={{ marginBottom: '20px' }}>
         <h1>👥 Clients</h1>
-        
-        {/* Barre de recherche */}
+
         <div style={{ position: 'relative', marginTop: '10px' }}>
           <Search size={20} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--gray)' }} />
-          <input 
-            type="text" 
-            placeholder="Rechercher un nom ou un numéro..." 
+          <input
+            type="text"
+            placeholder="Rechercher un nom ou un numéro..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ paddingLeft: '40px' }} // Espace pour l'icône
+            style={{ paddingLeft: '40px' }}
           />
         </div>
       </header>
@@ -190,13 +136,12 @@ export default function ClientList() {
           ) : (
             filteredClients.map((client) => (
               <Card key={client.id} onClick={() => handleOpenDetails(client)}>
-                {/* Nom */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                  <div style={{ 
-                    background: 'var(--primary)', 
-                    color: 'white', 
-                    width: '40px', height: '40px', 
-                    borderRadius: '50%', 
+                  <div style={{
+                    background: 'var(--primary)',
+                    color: 'white',
+                    width: '40px', height: '40px',
+                    borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontWeight: 'bold'
                   }}>
@@ -205,10 +150,7 @@ export default function ClientList() {
                   <h3 style={{ margin: 0, fontSize: '16px' }}>{client.full_name}</h3>
                 </div>
 
-                {/* Coordonnées */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: 'var(--dark)' }}>
-                  
-                  {/* Téléphone (Cliquable sur mobile) */}
                   {client.phone && (
                     <a href={`tel:${client.phone}`} style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}>
                       <Phone size={16} color="var(--secondary)" />
@@ -216,7 +158,6 @@ export default function ClientList() {
                     </a>
                   )}
 
-                  {/* Email */}
                   {client.email && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Mail size={16} color="var(--gray)" />
@@ -224,7 +165,6 @@ export default function ClientList() {
                     </div>
                   )}
 
-                  {/* Adresse */}
                   {client.address && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <MapPin size={16} color="var(--gray)" />

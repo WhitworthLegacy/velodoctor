@@ -1,84 +1,35 @@
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import AppointmentCard from './AppointmentCard';
 import { Automation } from '../../lib/automation';
 import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
-import { apiFetch, getDataVersion } from '../../lib/apiClient';
-
-let logisticsCache = { data: null, version: 0 };
+import { useAppointments, useUpdateAppointment } from '../../lib/hooks/useApi';
 
 export default function LogisticsDashboard() {
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
+  const { data: appointments = [], isLoading: loading, error: fetchError, refetch } = useAppointments();
+  const updateAppointment = useUpdateAppointment();
+
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    fetchAppointments();
-    fetchAdminStatus();
-  }, []);
+  const error = fetchError ? "Impossible de charger les rendez-vous." : null;
 
   useEffect(() => {
-    const handleDataChange = () => {
-      logisticsCache = { data: null, version: getDataVersion() };
-      fetchAppointments(true);
-    };
-
-    window.addEventListener('admin-data-changed', handleDataChange);
-    return () => window.removeEventListener('admin-data-changed', handleDataChange);
+    isAdminRole().then(setIsAdmin);
   }, []);
 
-  async function fetchAppointments(force = false) {
-    const dataVersion = getDataVersion();
-    if (!force && logisticsCache.data && logisticsCache.version === dataVersion) {
-      setAppointments(logisticsCache.data);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const payload = await apiFetch('/api/admin/appointments');
-      const nextAppointments = payload.appointments || [];
-      logisticsCache = { data: nextAppointments, version: dataVersion };
-      setAppointments(nextAppointments);
-    } catch (err) {
-      console.error("Erreur de chargement:", err);
-      setError("Impossible de charger les rendez-vous.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchAdminStatus() {
-    const admin = await isAdminRole();
-    setIsAdmin(admin);
-  }
-
-  // ✨ NOUVELLE FONCTION : Met à jour le statut dans la base de données
   async function handleStatusUpdate(id, newStatus, appointment) {
-      if (newStatus === 'done') {
-        // SI C'EST FINI -> AUTOMATISATION COMPLÈTE
-        if(confirm("Confirmer la fin de mission et envoyer l'avis Google ?")) {
-          const success = await Automation.completeJob('appointments', id, appointment.clients?.id);
-          if(success) fetchAppointments(true); // Rafraîchir la liste
-        }
-      } else {
-        // CAS CLASSIQUE (ex: En transit)
-        try {
-          await apiFetch(`/api/admin/appointments/${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ status: newStatus }),
-          });
-          fetchAppointments(true);
-        } catch (updateError) {
-          console.error(updateError);
-          alert("Impossible de mettre à jour le statut.");
-        }
+    if (newStatus === 'done') {
+      if(confirm("Confirmer la fin de mission et envoyer l'avis Google ?")) {
+        const success = await Automation.completeJob('appointments', id, appointment.clients?.id);
+        if(success) refetch();
       }
+    } else {
+      updateAppointment.mutate({ id, data: { status: newStatus } });
+    }
   }
 
   const handleOpenDetails = (appointment) => {
@@ -93,7 +44,7 @@ export default function LogisticsDashboard() {
       await deleteAppointmentById(selectedAppointment.id);
       setDetailsOpen(false);
       setSelectedAppointment(null);
-      fetchAppointments(true);
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
     } catch (deleteError) {
       console.error(deleteError);
       alert('Suppression impossible.');
@@ -183,11 +134,7 @@ export default function LogisticsDashboard() {
       }
     }
 
-    await apiFetch(`/api/admin/appointments/${selectedAppointment.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    });
-    fetchAppointments(true);
+    updateAppointment.mutate({ id: selectedAppointment.id, data: payload });
   };
 
   return (
@@ -198,7 +145,7 @@ export default function LogisticsDashboard() {
       </header>
 
       {loading && <p>Chargement...</p>}
-      
+
       {error && (
         <div style={{ padding: '10px', background: '#fee2e2', color: '#dc2626', borderRadius: '8px' }}>
           {error}
@@ -211,10 +158,10 @@ export default function LogisticsDashboard() {
             <p>Aucun rendez-vous prévu.</p>
           ) : (
             appointments.map((apt) => (
-              <AppointmentCard 
-                key={apt.id} 
-                appointment={apt} 
-                onUpdate={handleStatusUpdate} /* 👈 On passe la fonction à la carte */
+              <AppointmentCard
+                key={apt.id}
+                appointment={apt}
+                onUpdate={handleStatusUpdate}
                 onDetails={handleOpenDetails}
               />
             ))

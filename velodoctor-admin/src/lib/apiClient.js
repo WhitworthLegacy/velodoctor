@@ -1,15 +1,13 @@
-// src/lib/apiClient.js
 import { supabase, clearSupabaseAuthStorage } from './supabase';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
-const responseCache = new Map();
 
 export function getDataVersion() {
   if (typeof window === "undefined") return 0;
   return window.__adminDataVersion || 0;
 }
 
-function bumpDataVersion() {
+export function bumpDataVersion() {
   if (typeof window === "undefined") return;
   window.__adminDataVersion = (window.__adminDataVersion || 0) + 1;
   window.dispatchEvent(new Event("admin-data-changed"));
@@ -30,13 +28,11 @@ export async function apiFetch(path, options = {}) {
   const url = `${apiBase}${path.startsWith("/") ? path : `/${path}`}`;
   const isDev = Boolean(import.meta.env.DEV);
   const controller = new AbortController();
-  const timeoutMs = options.timeoutMs ?? 10000;
+  const timeoutMs = options.timeoutMs ?? 15000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData?.session?.access_token || null;
   const headers = new Headers(options.headers || {});
-  const cacheMs = options.cacheMs ?? 300000;
-  const cacheKey = `${method}:${url}:${accessToken || "anon"}`;
 
   if (accessToken) {
     headers.set('Authorization', `Bearer ${accessToken}`);
@@ -47,23 +43,11 @@ export async function apiFetch(path, options = {}) {
   }
 
   if (isDev) {
-    console.info('[apiFetch]', {
-      baseUrl: apiBase,
-      url,
-      hasAuth: Boolean(accessToken),
-    });
+    console.info('[apiFetch]', { url, hasAuth: Boolean(accessToken) });
   }
 
   if (method !== "GET") {
-    responseCache.clear();
     bumpDataVersion();
-  }
-
-  if (method === "GET" && !options.noCache && cacheMs > 0) {
-    const cached = responseCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < cacheMs) {
-      return cached.data;
-    }
   }
 
   let res;
@@ -95,10 +79,6 @@ export async function apiFetch(path, options = {}) {
     error.status = res.status;
     error.payload = data;
     throw error;
-  }
-
-  if (method === "GET" && !options.noCache && cacheMs > 0) {
-    responseCache.set(cacheKey, { data, timestamp: Date.now() });
   }
 
   if (isDev) {
