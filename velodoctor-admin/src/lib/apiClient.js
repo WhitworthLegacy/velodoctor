@@ -2,6 +2,7 @@
 import { supabase } from './supabase';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL;
+const responseCache = new Map();
 
 export function getApiBaseUrl() {
   return baseUrl?.replace(/\/$/, "") || null;
@@ -14,6 +15,7 @@ export async function apiFetch(path, options = {}) {
     throw new Error("Missing API base URL");
   }
 
+  const method = (options.method || "GET").toUpperCase();
   const url = `${apiBase}${path.startsWith("/") ? path : `/${path}`}`;
   const isDev = Boolean(import.meta.env.DEV);
   const controller = new AbortController();
@@ -22,6 +24,8 @@ export async function apiFetch(path, options = {}) {
   const { data: sessionData } = await supabase.auth.getSession();
   const accessToken = sessionData?.session?.access_token || null;
   const headers = new Headers(options.headers || {});
+  const cacheMs = options.cacheMs ?? 300000;
+  const cacheKey = `${method}:${url}:${accessToken || "anon"}`;
 
   if (accessToken) {
     headers.set('Authorization', `Bearer ${accessToken}`);
@@ -37,6 +41,17 @@ export async function apiFetch(path, options = {}) {
       url,
       hasAuth: Boolean(accessToken),
     });
+  }
+
+  if (method !== "GET") {
+    responseCache.clear();
+  }
+
+  if (method === "GET" && !options.noCache && cacheMs > 0) {
+    const cached = responseCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < cacheMs) {
+      return cached.data;
+    }
   }
 
   let res;
@@ -64,6 +79,10 @@ export async function apiFetch(path, options = {}) {
     error.status = res.status;
     error.payload = data;
     throw error;
+  }
+
+  if (method === "GET" && !options.noCache && cacheMs > 0) {
+    responseCache.set(cacheKey, { data, timestamp: Date.now() });
   }
 
   if (isDev) {

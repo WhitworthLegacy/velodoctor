@@ -11,13 +11,15 @@ import { apiFetch } from '../../lib/apiClient';
 
 const DEFAULT_COLUMNS = [
   { id: 'reception', slug: CRM_STAGES.NEW_LEAD, label: 'Réception', position: 1 },
-  { id: 'missions', slug: CRM_STAGES.APPOINTMENT, label: 'Missions', position: 2 },
+  { id: 'missions', slug: CRM_STAGES.APPOINTMENT, label: 'Missions Logistique', position: 2 },
   { id: 'mission_fini', slug: CRM_STAGES.DONE, label: 'Mission finie', position: 3 },
   { id: 'atelier', slug: 'atelier', label: 'Atelier', position: 4 },
   { id: 'encaissements', slug: 'encaissements', label: 'Encaissements', position: 5 },
   { id: 'cloture', slug: CRM_STAGES.SATISFACTION, label: 'Clôture', position: 6 },
   { id: 'annuler', slug: 'annuler', label: 'Annulé', position: 7 },
 ];
+
+let crmCache = { columns: null, leads: null };
 
 export default function PipelineBoard() {
   const [columns, setColumns] = useState([]);
@@ -40,7 +42,15 @@ export default function PipelineBoard() {
     fetchAdminStatus();
   }, []);
 
-  async function fetchData() {
+  async function fetchData(force = false) {
+    if (!force && crmCache.columns && crmCache.leads) {
+      setColumns(crmCache.columns);
+      setLeads(crmCache.leads);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     try {
       const columnsPayload = await apiFetch('/api/admin/crm-columns');
@@ -50,6 +60,7 @@ export default function PipelineBoard() {
       const orderedColumns = buildColumns(colsData, leadsData);
       setColumns(orderedColumns);
       setLeads(leadsData);
+      crmCache = { columns: orderedColumns, leads: leadsData };
       setError(null);
     } catch (error) {
       console.error("Erreur chargement CRM:", error);
@@ -131,7 +142,11 @@ export default function PipelineBoard() {
   };
 
   const handleChecklistChange = async (leadId, nextChecklists) => {
-    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, checklists: nextChecklists } : l)));
+    setLeads((prev) => {
+      const nextLeads = prev.map((l) => (l.id === leadId ? { ...l, checklists: nextChecklists } : l));
+      crmCache = { columns, leads: nextLeads };
+      return nextLeads;
+    });
     setDetailsLead((prev) => (prev?.id === leadId ? { ...prev, checklists: nextChecklists } : prev));
     try {
       await apiFetch(`/api/admin/clients/${leadId}`, {
@@ -144,7 +159,11 @@ export default function PipelineBoard() {
   };
 
   const handlePhotosChange = (leadId, nextPhotos) => {
-    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, crm_photos: nextPhotos } : l)));
+    setLeads((prev) => {
+      const nextLeads = prev.map((l) => (l.id === leadId ? { ...l, crm_photos: nextPhotos } : l));
+      crmCache = { columns, leads: nextLeads };
+      return nextLeads;
+    });
     setDetailsLead((prev) => (prev?.id === leadId ? { ...prev, crm_photos: nextPhotos } : prev));
   };
 
@@ -156,6 +175,7 @@ export default function PipelineBoard() {
       setLeads((prev) => prev.filter((l) => l.id !== lead.id));
       setDetailsLead(null);
       setDetailsOpen(false);
+      crmCache = { columns, leads: leads.filter((l) => l.id !== lead.id) };
     } catch (error) {
       console.error(error);
       alert("Impossible de supprimer le client.");
@@ -169,7 +189,11 @@ export default function PipelineBoard() {
     try {
       // 1. MISE À JOUR (Client existant)
       if (leadData.id) {
-        setLeads(prev => prev.map(l => l.id === leadData.id ? leadData : l));
+        setLeads(prev => {
+          const nextLeads = prev.map(l => l.id === leadData.id ? leadData : l);
+          crmCache = { columns, leads: nextLeads };
+          return nextLeads;
+        });
 
         await apiFetch(`/api/admin/clients/${leadData.id}`, {
           method: 'PATCH',
@@ -204,7 +228,11 @@ export default function PipelineBoard() {
         });
 
         if (payload?.client) {
-          setLeads(prev => [payload.client, ...prev]);
+          setLeads(prev => {
+            const nextLeads = [payload.client, ...prev];
+            crmCache = { columns, leads: nextLeads };
+            return nextLeads;
+          });
         }
       }
     } catch (err) {
@@ -216,7 +244,11 @@ export default function PipelineBoard() {
   // --- ACTION ARCHIVER ---
   async function archiveLead(leadToArchive) {
     // 1. Optimistic UI : On le retire tout de suite de l'affichage
-    setLeads(prev => prev.filter(l => l.id !== leadToArchive.id));
+    setLeads(prev => {
+      const nextLeads = prev.filter(l => l.id !== leadToArchive.id);
+      crmCache = { columns, leads: nextLeads };
+      return nextLeads;
+    });
     setIsModalOpen(false); // On ferme la modale
 
     try {
@@ -232,7 +264,7 @@ export default function PipelineBoard() {
     } catch (err) {
       console.error("Erreur lors de l'archivage:", err);
       alert("Erreur technique lors de l'archivage. Le client risque de réapparaître au rechargement.");
-      fetchData(); // En cas d'erreur, on recharge les données pour être sûr
+      fetchData(true); // En cas d'erreur, on recharge les données pour être sûr
     }
   }
 
@@ -256,7 +288,11 @@ export default function PipelineBoard() {
         const updatedLead = { ...currentLead, crm_stage: targetSlug };
         
         // Update UI immédiat
-        setLeads(prev => prev.map(l => l.id === currentLead.id ? updatedLead : l));
+        setLeads(prev => {
+          const nextLeads = prev.map(l => l.id === currentLead.id ? updatedLead : l);
+          crmCache = { columns, leads: nextLeads };
+          return nextLeads;
+        });
         
         // Update DB
         await apiFetch(`/api/admin/clients/${currentLead.id}`, {

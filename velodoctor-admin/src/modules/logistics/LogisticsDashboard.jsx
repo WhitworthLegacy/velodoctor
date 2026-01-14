@@ -5,6 +5,8 @@ import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
 import { apiFetch } from '../../lib/apiClient';
 
+let logisticsCache = null;
+
 export default function LogisticsDashboard() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,11 +20,20 @@ export default function LogisticsDashboard() {
     fetchAdminStatus();
   }, []);
 
-  async function fetchAppointments() {
+  async function fetchAppointments(force = false) {
+    if (!force && logisticsCache) {
+      setAppointments(logisticsCache);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       const payload = await apiFetch('/api/admin/appointments');
-      setAppointments(payload.appointments || []);
+      const nextAppointments = payload.appointments || [];
+      logisticsCache = nextAppointments;
+      setAppointments(nextAppointments);
     } catch (err) {
       console.error("Erreur de chargement:", err);
       setError("Impossible de charger les rendez-vous.");
@@ -42,7 +53,7 @@ export default function LogisticsDashboard() {
         // SI C'EST FINI -> AUTOMATISATION COMPLÈTE
         if(confirm("Confirmer la fin de mission et envoyer l'avis Google ?")) {
           const success = await Automation.completeJob('appointments', id, appointment.clients?.id);
-          if(success) fetchAppointments(); // Rafraîchir la liste
+          if(success) fetchAppointments(true); // Rafraîchir la liste
         }
       } else {
         // CAS CLASSIQUE (ex: En transit)
@@ -51,7 +62,7 @@ export default function LogisticsDashboard() {
             method: 'PATCH',
             body: JSON.stringify({ status: newStatus }),
           });
-          fetchAppointments();
+          fetchAppointments(true);
         } catch (updateError) {
           console.error(updateError);
           alert("Impossible de mettre à jour le statut.");
@@ -71,7 +82,7 @@ export default function LogisticsDashboard() {
       await deleteAppointmentById(selectedAppointment.id);
       setDetailsOpen(false);
       setSelectedAppointment(null);
-      fetchAppointments();
+      fetchAppointments(true);
     } catch (deleteError) {
       console.error(deleteError);
       alert('Suppression impossible.');

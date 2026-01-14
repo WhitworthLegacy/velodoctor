@@ -6,6 +6,8 @@ import QuoteForm from './QuoteForm';
 import VehicleSheet from './VehicleSheet'; // 👈 Import du nouveau composant
 import { Automation } from '../../lib/automation';
 
+let workshopCache = null;
+
 export default function WorkshopDashboard() {
   const [interventions, setInterventions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,16 +22,27 @@ export default function WorkshopDashboard() {
     fetchInterventions();
   }, []);
 
-  async function fetchInterventions() {
+  async function fetchInterventions(force = false) {
+    if (!force && workshopCache) {
+      setInterventions(workshopCache);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       const payload = await apiFetch('/api/admin/interventions');
-      setInterventions(payload.interventions || []);
+      const nextInterventions = payload.interventions || [];
+      workshopCache = nextInterventions;
+      setInterventions(nextInterventions);
     } catch (err) {
       console.error(err);
       setError(err?.message || 'Erreur chargement interventions');
-      setInterventions([]);
+      if (!workshopCache) {
+        setInterventions([]);
+      }
     } finally { setLoading(false); }
   }
 
@@ -62,7 +75,7 @@ export default function WorkshopDashboard() {
         if(confirm("Réparation terminée ? Envoyer mail de récupération ?")) {
             // On utilise Automation
             const success = await Automation.completeJob('interventions', id, clientId);
-            if(success) fetchInterventions();
+            if(success) fetchInterventions(true);
         }
       } else {
         // Cas normal
@@ -71,7 +84,7 @@ export default function WorkshopDashboard() {
             method: 'PATCH',
             body: JSON.stringify({ status: newStatus })
           });
-          fetchInterventions();
+          fetchInterventions(true);
         } catch (err) {
           console.error(err);
           setError(err?.message || 'Erreur mise à jour intervention');
@@ -113,7 +126,7 @@ export default function WorkshopDashboard() {
           <QuoteForm 
             intervention={selectedIntervention}
             onCancel={() => setIsModalOpen(false)}
-            onSuccess={() => { setIsModalOpen(false); fetchInterventions(); }}
+            onSuccess={() => { setIsModalOpen(false); fetchInterventions(true); }}
           />
         )}
         

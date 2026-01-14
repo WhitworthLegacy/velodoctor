@@ -5,6 +5,8 @@ import AdminDetailsModal from '../../components/admin/AdminDetailsModal';
 import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
 import { apiFetch } from '../../lib/apiClient';
 
+let clientListCache = null;
+
 export default function ClientList() {
   const [clients, setClients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,10 +23,19 @@ export default function ClientList() {
     fetchAdminStatus();
   }, []);
 
-  async function fetchClients() {
+  async function fetchClients(force = false) {
+    if (!force && clientListCache) {
+      setClients(clientListCache);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     try {
       const payload = await apiFetch('/api/admin/clients');
-      setClients(payload.clients || []);
+      const nextClients = payload.clients || [];
+      clientListCache = nextClients;
+      setClients(nextClients);
       setError(null);
     } catch (err) {
       console.error(err);

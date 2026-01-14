@@ -23,6 +23,8 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+let planningCache = null;
+
 export default function PlanningDashboard() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +38,14 @@ export default function PlanningDashboard() {
     fetchAdminStatus();
   }, []);
 
-  async function fetchData() {
+  async function fetchData(force = false) {
+    if (!force && planningCache) {
+      setEvents(planningCache);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     setLoading(true);
     try {
       // 1. Récupérer les RDV Logistiques (Transport)
@@ -70,7 +79,9 @@ export default function PlanningDashboard() {
         intervention: int,
       }));
 
-      setEvents([...logisticsEvents, ...workshopEvents]);
+      const nextEvents = [...logisticsEvents, ...workshopEvents];
+      planningCache = nextEvents;
+      setEvents(nextEvents);
       setError(null);
     } catch (fetchError) {
       console.error(fetchError);
@@ -111,7 +122,7 @@ export default function PlanningDashboard() {
       await deleteAppointmentById(apt.id);
       setDetailsOpen(false);
       setSelectedEvent(null);
-      await fetchData();
+      await fetchData(true);
     } catch (error) {
       console.error(error);
       alert('Suppression impossible.');
