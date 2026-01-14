@@ -147,6 +147,7 @@ export default function PlanningDashboard() {
               agenda: "Liste"
             }}
             eventPropGetter={eventStyleGetter}
+            defaultView="week"
             onSelectEvent={(event) => {
               setSelectedEvent(event);
               setDetailsOpen(true);

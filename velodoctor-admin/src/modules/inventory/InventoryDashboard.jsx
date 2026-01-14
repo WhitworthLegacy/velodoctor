@@ -102,7 +102,7 @@ export default function InventoryDashboard() {
       )}
 
       {loading ? <p>Chargement...</p> : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+        <div className="inventory-grid">
           {filteredItems.map(item => (
             <Card
               key={item.id}

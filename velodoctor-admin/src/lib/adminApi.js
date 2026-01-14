@@ -21,3 +21,9 @@ export async function deleteAppointmentById(appointmentId) {
     method: 'DELETE',
   });
 }
+
+export async function deleteClientById(clientId) {
+  return apiFetch(`/api/admin/clients/${clientId}`, {
+    method: 'DELETE',
+  });
+}

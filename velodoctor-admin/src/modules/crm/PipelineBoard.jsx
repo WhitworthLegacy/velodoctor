@@ -6,7 +6,7 @@ import Modal from '../../components/ui/Modal';
 import ClientForm from './ClientForm';
 import Button from '../../components/ui/Button';
 import CrmCardModal from '../../components/admin/CrmCardModal';
-import { deleteAppointmentById, isAdminRole } from '../../lib/adminApi';
+import { deleteAppointmentById, deleteClientById, isAdminRole } from '../../lib/adminApi';
 import { apiFetch } from '../../lib/apiClient';
 
 const DEFAULT_COLUMNS = [
@@ -127,6 +127,38 @@ export default function PipelineBoard() {
     } catch (deleteError) {
       console.error(deleteError);
       alert('Suppression impossible.');
+    }
+  };
+
+  const handleChecklistChange = async (leadId, nextChecklists) => {
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, checklists: nextChecklists } : l)));
+    setDetailsLead((prev) => (prev?.id === leadId ? { ...prev, checklists: nextChecklists } : prev));
+    try {
+      await apiFetch(`/api/admin/clients/${leadId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ checklists: nextChecklists }),
+      });
+    } catch (error) {
+      console.error('[CRM] checklists save failed:', error);
+    }
+  };
+
+  const handlePhotosChange = (leadId, nextPhotos) => {
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, crm_photos: nextPhotos } : l)));
+    setDetailsLead((prev) => (prev?.id === leadId ? { ...prev, crm_photos: nextPhotos } : prev));
+  };
+
+  const handleDeleteClient = async (lead) => {
+    if (!lead) return;
+    if (!confirm("Supprimer définitivement ce client ?")) return;
+    try {
+      await deleteClientById(lead.id);
+      setLeads((prev) => prev.filter((l) => l.id !== lead.id));
+      setDetailsLead(null);
+      setDetailsOpen(false);
+    } catch (error) {
+      console.error(error);
+      alert("Impossible de supprimer le client.");
     }
   };
 
@@ -333,6 +365,9 @@ export default function PipelineBoard() {
         appointmentsLoading={appointmentsLoading}
         onStageChange={handleStageChange}
         onDeleteAppointment={handleDeleteAppointment}
+        onChecklistChange={handleChecklistChange}
+        onPhotosChange={handlePhotosChange}
+        onDeleteClient={handleDeleteClient}
         isAdmin={isAdmin}
       />
     </div>

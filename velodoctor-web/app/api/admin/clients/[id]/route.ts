@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireStaff } from '@/lib/adminAuth';
+import { requireAdmin, requireStaff } from '@/lib/adminAuth';
 import { applyCors } from '@/lib/cors';
 
 export async function OPTIONS() {
@@ -54,4 +54,27 @@ export async function PATCH(
   }
 
   return applyCors(NextResponse.json({ client: data }));
+}
+
+export async function DELETE(
+  request: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const { id } = await ctx.params;
+  const auth = await requireAdmin(request);
+  if ('error' in auth) {
+    return auth.error;
+  }
+
+  const { error } = await auth.supabase
+    .from('clients')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('[admin] client delete failed:', error);
+    return applyCors(NextResponse.json({ error: 'Failed to delete client' }, { status: 500 }));
+  }
+
+  return applyCors(NextResponse.json({ success: true }));
 }

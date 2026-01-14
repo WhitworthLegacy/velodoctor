@@ -1,11 +1,10 @@
 import Section from "@/components/Section";
-import Card from "@/components/Card";
 import Button from "@/components/Button";
 
 export const metadata = {
   title: "Qui sommes-nous | VeloDoctor",
   description:
-    "Decouvrez l'histoire et la methode VeloDoctor pour la reparation de trottinettes et velos electriques a Bruxelles et en Belgique.",
+    "L'histoire, la methode et la mission VeloDoctor pour la reparation de trottinettes et velos electriques a Bruxelles et en Belgique.",
 };
 
 export default function QuiSommesNousPage() {
@@ -35,54 +34,77 @@ export default function QuiSommesNousPage() {
       </Section>
 
       <Section spacing="default" background="white">
-        <div className="space-y-6 max-w-4xl mx-auto">
-          <Card hover={false}>
+        <div className="space-y-10 max-w-4xl mx-auto">
+          <div>
             <h2 className="text-2xl font-bold text-vdDark">
-              Une expertise nee en 2018
+              VeloDoctor - reparation de trottinettes et velos electriques a Bruxelles et en Belgique
             </h2>
             <p className="mt-3 text-sm md:text-base text-gray-700">
-              VeloDoctor est ne pour accompagner la mobilite electrique a Bruxelles et partout en
-              Belgique. Depuis 2018, nous intervenons sur les flottes professionnelles avec une
-              methode rigoureuse. Aujourd'hui, cette exigence est ouverte aux particuliers
-              qui veulent un service fiable, clair et durable.
+              VeloDoctor est un service specialise dans la reparation, le diagnostic et la maintenance
+              professionnelle de trottinettes electriques et velos electriques, actif a Bruxelles et
+              partout en Belgique. Depuis 2018, nous accompagnons la croissance de la mobilite
+              electrique avec une approche issue du monde professionnel (B2B), aujourd'hui ouverte
+              aux particuliers exigeants. Meme methode, memes standards, zero compromis sur la qualite.
             </p>
-          </Card>
+          </div>
 
-          <Card hover={false}>
+          <div>
             <h2 className="text-2xl font-bold text-vdDark">
               Reparation de trottinettes et velos electriques a Bruxelles
             </h2>
             <p className="mt-3 text-sm md:text-base text-gray-700">
-              Vous cherchez un reparateur de trottinette electrique a Bruxelles ou un atelier
-              fiable pour votre velo electrique en Belgique ? VeloDoctor intervient sur les
-              trottinettes electriques toutes marques, les velos electriques urbains, VTC et
-              cargos, pour particuliers et professionnels.
+              Vous cherchez un reparateur de trottinette electrique a Bruxelles ? Un atelier fiable
+              pour votre velo electrique en Belgique ? VeloDoctor intervient pour les trottinettes
+              electriques toutes marques, les velos electriques urbains, VTC et cargos, pour
+              particuliers et professionnels.
             </p>
             <p className="mt-3 text-sm md:text-base text-gray-700">
               Zone principale : Bruxelles. Interventions possibles dans toute la Belgique.
             </p>
-          </Card>
-
-          <Card hover={false}>
-            <h2 className="text-2xl font-bold text-vdDark">Notre methode</h2>
             <p className="mt-3 text-sm md:text-base text-gray-700">
-              Une methode issue du B2B, pensee pour durer. Chaque vehicule suit un process clair,
-              identique a celui des flottes professionnelles.
+              Mots-cles cibles : reparation trottinette electrique Bruxelles, reparateur velo
+              electrique Belgique, diagnostic trottinette electrique Bruxelles, atelier reparation
+              mobilite electrique.
+            </p>
+            <p className="mt-3 text-sm md:text-base text-gray-700">
+              Contactez-nous via velodoctor.be
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button href="/booking" variant="primary" size="md">
+                Demander un diagnostic
+              </Button>
+              <Button href="/contact" variant="secondary" size="md">
+                Poser une question
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold text-vdDark">Notre methode de reparation</h2>
+            <p className="mt-3 text-sm md:text-base text-gray-700">
+              Une methode issue du B2B, pensee pour durer. Chez VeloDoctor, on ne repare pas a la
+              va-vite chez le client. Chaque vehicule suit un process clair et maitrise, identique
+              a celui utilise pour les flottes professionnelles.
             </p>
             <ol className="mt-4 list-decimal pl-5 space-y-2 text-sm md:text-base text-gray-700">
-              <li>Recuperation du vehicule a domicile ou au point convenu.</li>
-              <li>Diagnostic complet en atelier : mecanique, electrique, securite.</li>
-              <li>Identification des reparations necessaires, sans superflu.</li>
-              <li>Devis clair et transparent avant intervention.</li>
+              <li>Recuperation du vehicule, a domicile ou point convenu.</li>
+              <li>Diagnostic complet en atelier : mecanique, electrique et securite.</li>
+              <li>Identification des reparations necessaires, aucune intervention inutile.</li>
+              <li>Devis clair et transparent.</li>
               <li>Reparation professionnelle avec pieces adaptees.</li>
-              <li>Controles finaux avant restitution.</li>
+              <li>Controles avant restitution.</li>
             </ol>
             <p className="mt-3 text-sm md:text-base text-gray-700">
               Si vous acceptez le devis, le diagnostic est offert.
             </p>
-          </Card>
+            <div className="mt-5">
+              <Button href="/booking" variant="primary" size="md">
+                Verifier la disponibilite
+              </Button>
+            </div>
+          </div>
 
-          <Card hover={false}>
+          <div>
             <h2 className="text-2xl font-bold text-vdDark">Pourquoi choisir VeloDoctor</h2>
             <ul className="mt-4 list-disc pl-5 space-y-2 text-sm md:text-base text-gray-700">
               <li>Expertise depuis 2018.</li>
@@ -95,38 +117,39 @@ export default function QuiSommesNousPage() {
             <p className="mt-3 text-sm md:text-base text-gray-700">
               Nous reparons moins, mais mieux.
             </p>
-          </Card>
+          </div>
         </div>
       </Section>
 
       <Section spacing="default" background="surface">
-        <div className="space-y-6 max-w-4xl mx-auto">
-          <Card hover={false}>
-            <h2 className="text-2xl font-bold text-vdDark">FAQ</h2>
+        <div className="space-y-10 max-w-4xl mx-auto">
+          <div>
+            <h2 className="text-2xl font-bold text-vdDark">
+              FAQ - reparation trottinette et velo electrique
+            </h2>
             <div className="mt-4 space-y-4 text-sm md:text-base text-gray-700">
               <div>
                 <p className="font-semibold text-vdDark">
                   Reparez-vous toutes les marques de trottinettes electriques ?
                 </p>
-                <p>Oui, sous reserve de disponibilite des pieces.</p>
+                <p>Oui, nous intervenons sur la majorite des marques, selon la disponibilite des pieces.</p>
               </div>
               <div>
                 <p className="font-semibold text-vdDark">Combien coute un diagnostic ?</p>
                 <p>
-                  Le diagnostic est payant uniquement si le devis est refuse. Accepte = diagnostic
-                  offert.
+                  Le diagnostic est payant uniquement si le devis est refuse. Si vous acceptez, il est offert.
                 </p>
               </div>
               <div>
                 <p className="font-semibold text-vdDark">Quels sont les delais de reparation ?</p>
                 <p>
-                  Ils varient selon la panne et les pieces. Nous privilegions la qualite a la
+                  Ils varient selon la panne et les pieces a commander. Nous privilegions la qualite a la
                   precipitation.
                 </p>
               </div>
               <div>
                 <p className="font-semibold text-vdDark">Reparez-vous aussi les velos electriques ?</p>
-                <p>Oui, moteurs, batteries, transmission, freins et entretien general.</p>
+                <p>Oui, moteurs, batteries, transmission, freins, controleurs et entretien general.</p>
               </div>
               <div>
                 <p className="font-semibold text-vdDark">Faites-vous les reparations chez le client ?</p>
@@ -135,20 +158,47 @@ export default function QuiSommesNousPage() {
                 </p>
               </div>
             </div>
-          </Card>
+          </div>
 
-          <Card hover={false}>
+          <div>
+            <h2 className="text-2xl font-bold text-vdDark">
+              Une presence active sur Instagram et TikTok
+            </h2>
+            <p className="mt-3 text-sm md:text-base text-gray-700">
+              Nous partageons notre quotidien et notre expertise : reparations reelles, conseils,
+              coulisses et pedagogie. La transparence fait partie de notre ADN.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-4 text-sm md:text-base">
+              <a
+                className="text-vdPrimary font-semibold hover:underline"
+                href="https://instagram.com/velodoctor.be"
+                rel="noreferrer"
+                target="_blank"
+              >
+                Instagram
+              </a>
+              <a
+                className="text-vdPrimary font-semibold hover:underline"
+                href="https://tiktok.com/velodoctor.be"
+                rel="noreferrer"
+                target="_blank"
+              >
+                TikTok
+              </a>
+            </div>
+          </div>
+
+          <div>
             <h2 className="text-2xl font-bold text-vdDark">VeloDoctor, aujourd'hui et demain</h2>
             <p className="mt-3 text-sm md:text-base text-gray-700">
-              Depuis 2018, VeloDoctor evolue avec un objectif constant : professionnaliser la
-              reparation de la mobilite electrique en Belgique. En 2025, l'ouverture aux particuliers
-              marque une nouvelle etape, sans jamais renier nos standards.
+              Depuis 2018, VeloDoctor evolue avec un objectif constant : professionnaliser la reparation
+              de la mobilite electrique en Belgique. En 2025, l'ouverture aux particuliers marque une
+              nouvelle etape, sans jamais renier nos standards.
             </p>
             <p className="mt-3 text-sm md:text-base text-gray-700">
-              Suivez nos interventions et conseils sur Instagram et TikTok : coulisses, diagnostics
-              reels, et pedagogie terrain.
+              Site officiel : https://velodoctor.be - Bruxelles et Belgique.
             </p>
-          </Card>
+          </div>
         </div>
       </Section>
     </main>
