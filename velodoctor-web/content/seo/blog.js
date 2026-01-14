@@ -39,6 +39,36 @@ export default {
             </a>
           </div>
         </article>
+
+        <article class="rounded-2xl border border-vdBorder bg-white p-6 shadow-vd-sm transition hover:shadow-vd-md">
+          <p class="text-xs text-gray-500">Guide pratique • 7 min</p>
+          <h2 class="mt-2 text-xl font-bold text-vdDark">
+            Réparation de trottinette électrique à Bruxelles
+          </h2>
+          <p class="mt-3 text-gray-600">
+            Pannes courantes, entretien et conseils pour prolonger la durée de vie de votre trottinette.
+          </p>
+          <div class="mt-5">
+            <a class="text-sm font-semibold text-vdPrimary hover:underline" href="/blog/reparation-trottinette-electrique-bruxelles">
+              Lire l'article
+            </a>
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-vdBorder bg-white p-6 shadow-vd-sm transition hover:shadow-vd-md">
+          <p class="text-xs text-gray-500">Guide expert • 8 min</p>
+          <h2 class="mt-2 text-xl font-bold text-vdDark">
+            Batterie de vélo électrique : le guide complet
+          </h2>
+          <p class="mt-3 text-gray-600">
+            Tout savoir sur les batteries : fonctionnement, entretien, durée de vie et remplacement.
+          </p>
+          <div class="mt-5">
+            <a class="text-sm font-semibold text-vdPrimary hover:underline" href="/blog/batterie-velo-electrique-guide-complet">
+              Lire l'article
+            </a>
+          </div>
+        </article>
       </section>
     </div>
   `,

@@ -28,13 +28,43 @@ export default {
         <article class="rounded-2xl border border-vdBorder bg-white p-6 shadow-vd-sm transition hover:shadow-vd-md">
           <p class="text-xs text-gray-500">Praktische gids • 6 min</p>
           <h2 class="mt-2 text-xl font-bold text-vdDark">
-            Onderhoud van elektrische fietsen in Brussel: de essentiele gids
+            Onderhoud van elektrische fietsen in Brussel: de essentiële gids
           </h2>
           <p class="mt-3 text-gray-600">
             Batterij, remmen, banden, ketting: een eenvoudige checklist om het hele jaar betrouwbaar te blijven.
           </p>
           <div class="mt-5">
             <a class="text-sm font-semibold text-vdPrimary hover:underline" href="/nl/blog/onderhoud-elektrische-fiets-brussel">
+              Lees het artikel
+            </a>
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-vdBorder bg-white p-6 shadow-vd-sm transition hover:shadow-vd-md">
+          <p class="text-xs text-gray-500">Praktische gids • 7 min</p>
+          <h2 class="mt-2 text-xl font-bold text-vdDark">
+            Elektrische step reparatie in Brussel
+          </h2>
+          <p class="mt-3 text-gray-600">
+            Veelvoorkomende defecten, onderhoud en tips om de levensduur van je step te verlengen.
+          </p>
+          <div class="mt-5">
+            <a class="text-sm font-semibold text-vdPrimary hover:underline" href="/nl/blog/elektrische-step-reparatie-brussel">
+              Lees het artikel
+            </a>
+          </div>
+        </article>
+
+        <article class="rounded-2xl border border-vdBorder bg-white p-6 shadow-vd-sm transition hover:shadow-vd-md">
+          <p class="text-xs text-gray-500">Expert gids • 8 min</p>
+          <h2 class="mt-2 text-xl font-bold text-vdDark">
+            Batterij van elektrische fiets: de complete gids
+          </h2>
+          <p class="mt-3 text-gray-600">
+            Alles over batterijen: werking, onderhoud, levensduur en vervanging.
+          </p>
+          <div class="mt-5">
+            <a class="text-sm font-semibold text-vdPrimary hover:underline" href="/nl/blog/batterij-elektrische-fiets-gids">
               Lees het artikel
             </a>
           </div>

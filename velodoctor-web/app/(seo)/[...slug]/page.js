@@ -97,17 +97,17 @@ export default async function SeoPage({ params }) {
       </Section>
 
       <Section spacing="default" background="white">
-        <div className="space-y-6">
+        <div className="max-w-3xl mx-auto space-y-12">
           {(page.sections ?? []).map((section) => (
-            <Card key={section.heading || section.html} hover={false} padding="lg">
+            <div key={section.heading || section.html}>
               {section.heading && (
-                <h2 className="text-2xl font-bold text-vdDark">{section.heading}</h2>
+                <h2 className="text-2xl font-bold text-vdDark mb-4">{section.heading}</h2>
               )}
               <div
-                className="seo-content mt-3 text-sm md:text-base text-gray-700"
+                className="seo-content text-sm md:text-base text-gray-700"
                 dangerouslySetInnerHTML={{ __html: section.html }}
               />
-            </Card>
+            </div>
           ))}
         </div>
       </Section>
