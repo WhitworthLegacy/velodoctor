@@ -217,7 +217,7 @@ export async function PATCH(
     await ensureLogisticsAppointment(auth.supabase, id, clientSnapshot);
   }
 
-  if (stageChanged && isWorkshopStage(updatedStage)) {
+  if (isWorkshopStage(updatedStage)) {
     await ensureWorkshopIntervention(auth.supabase, id, clientSnapshot);
   }
 
